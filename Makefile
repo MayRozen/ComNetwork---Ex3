@@ -1,24 +1,24 @@
 # Makefile for TCP project
 
-all: tcp-Receiver tcp-Sender
+all: TCP_Receiver TCP_Sender
 
-tcp-Receiver: tcp-Receiver.c
-	gcc -o tcp-Receiver tcp-Receiver.c
+TCP_Receiver: TCP_Receiver.c
+	gcc -o TCP_Receiver TCP_Receiver.c
 
-tcp-Sender: tcp-Sender.c
-	gcc -o tcp-Sender tcp-Sender.c
+TCP_Sender: TCP_Sender.c
+	gcc -o TCP_Sender TCP_Sender.c
 
 clean:
-	rm -f *.o tcp-Receiver tcp-Sender
+	rm -f *.o TCP_Receiver TCP_Sender
 
 runs:
-	./tcp-Receiver
+	./TCP_Receiver
 
 runc:
-	./tcp-Sender
+	./TCP_Sender
 
 runs-strace:
-	strace -f ./tcp-Receiver
+	strace -f ./TCP_Receiver
 
 runc-strace:
-	strace -f ./tcp-Sender
+	strace -f ./TCP_Sender
