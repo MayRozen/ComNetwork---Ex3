@@ -8,13 +8,20 @@
 #include <errno.h>
 #include <signal.h>
 
-#define PORT 5060  //The port that the server listens
+#include <sys/time.h> 
+
+#define PORT 5060  // The port that the server listens
   
 int main()
 {
-    signal(SIGPIPE, SIG_IGN); //prevent crash on closing socket
-
+    signal(SIGPIPE, SIG_IGN); // prevent crash on closing socket
     int listeningSocket = -1; // Open the listening (server) socket
+    char receive_buff[256], send_buff[256];
+    struct sockaddr_in sender;
+    int sender_size;
+    struct timeval start_time, end_time;
+    size_t total_file_size = 0; // Total file size
+    double total_time_taken = 0; // Total time taken 
 	 
     if((listeningSocket = socket(AF_INET , SOCK_STREAM , 0 )) == -1){
         printf("Could not create listening socket: %d" );
@@ -27,12 +34,12 @@ int main()
 
     receiverAddress.sin_family = AF_INET;
     receiverAddress.sin_addr.s_addr = INADDR_ANY;
-    receiverAddress.sin_port = htons(PORT);  //network order
+    receiverAddress.sin_port = htons(PORT);  // network order
       
     // Bind the socket to the port with any IP at this port
     if (bind(listeningSocket, (struct sockaddr *)&receiverAddress , sizeof(receiverAddress)) == -1){
         printf("Bind failed with error code : %d");
-        return -1; //close the socket
+        return -1; // close the socket
     }
 
     // Reuse the address if the server socket on was closed
@@ -45,14 +52,14 @@ int main()
     printf("Bind() success\n");
   
     // Make the socket listening; actually mother of all client sockets.
-    if (listen(listeningSocket, 500) == -1) //500 is a Maximum size of queue connection requests
-											//number of concurrent connections 
+    if (listen(listeningSocket, 500) == -1) // 500 is a Maximum size of queue connection requests
+											// number of concurrent connections 
     {
 	printf("listen() failed with error code : %d");
-        return -1; //close the socket
+        return -1; // close the socket
     }
       
-    //Accept and incoming connection
+    // Accept and incoming connection
     printf("Waiting for incoming TCP-connections...\n");
     
     if(accept(listeningSocket, (struct sockaddr *)&receiverAddress, sizeof(receiverAddress))==-1){
@@ -60,46 +67,56 @@ int main()
         return -1; //close the socket
     }
       
-    struct sockaddr_in SenderAddress; 
-    socklen_t SenderAddressLen = sizeof(SenderAddress);
+    struct sockaddr_in senderAddress; 
+    socklen_t senderAddressLen = sizeof(senderAddress);
 
     while (1)
     {
-    	memset(&SenderAddress, 0, sizeof(SenderAddress));
-        SenderAddressLen = sizeof(SenderAddress);
-        int clientSocket = accept(listeningSocket, (struct sockaddr *)&SenderAddress, &SenderAddressLen);
-    	if (clientSocket == -1){
-           printf("listen failed with error code : %d");
-	   // TODO: close the sockets
-           return -1;
+    	memset(&senderAddress, 0, sizeof(senderAddress));
+        senderAddressLen = sizeof(senderAddress);
+
+        gettimeofday(&start_time, NULL);
+
+        int senderSocket = accept(listeningSocket, (struct sockaddr *)&senderAddress, &senderAddressLen);
+    	if (senderSocket == -1){
+            printf("listen failed with error code: %d");
+            close(listeningSocket);
+            return -1;
     	}
+
+        gettimeofday(&end_time, NULL);
+
+        long seconds = end_time.tv_sec - start_time.tv_sec;
+        long micros = end_time.tv_usec - start_time.tv_usec;
+        double milliseconds = (seconds * 1000) + (double)micros / 1000;
+        printf("The time is: %.2f\n",milliseconds);
+    
+        size_t file_size = strlen(receive_buff); // Calculate the size of the file received
+        double seconds_taken = seconds + (double)micros / 1000000; // Calculate the time taken in seconds
+        double bandwidth = file_size / seconds_taken; // Calculate the average bandwidth
+        printf("Average bandwidth: %.2f bytes/second\n", bandwidth);
+
+        
+        size_t file_size = strlen(receive_buff); // Calculate the size of the file received
+        total_file_size += file_size; // Accumulate total file size and total time taken
+        total_time_taken += (seconds + (double)micros / 1000000);
+        double total_average_bandwidth = total_file_size / total_time_taken; // Calculate the average bandwidth
+        printf("Total Average Bandwidth: %.2f bytes/second\n", total_average_bandwidth);
+
+        printf("Listening...\n");
+        memset(receive_buff, 0, sizeof(receive_buff));
+        sender_size = sizeof(sender);
+        if (recvfrom(listeningSocket, (void*)receive_buff, sizeof(receive_buff), 0, (struct sockaddr*) &sender, &sender_size) < 0) {
+            perror("failed to receive broadcast message");
+            return -5;
+        }
+        printf("%s\n", receive_buff);
       
-    	printf("A new client connection accepted\n");
-  
-    	//Reply to client
-    	char message[] = "Welcome to our TCP-server\n";
-        int messageLen = strlen(message) + 1;
-
-    	int bytesSent = send(clientSocket, message, messageLen, 0);
-		if(-1 == bytesSent){
-			printf("send() failed with error code : %d" );
-		}
-		else if(0 == bytesSent){
-		   printf("peer has closed the TCP connection prior to send().\n");
-		}
-		else if(messageLen > bytesSent){
-		   printf("sent only %d bytes from the required %d.\n", messageLen, bytesSent);
-		}
-		else {
-		   printf("message was successfully sent .\n");
-		}
-
+    	printf("A new sender connection accepted\n");
     }
-  
-    // TODO: All open clientSocket descriptors should be kept
-    // in some container and closed as well.
+    
     close(listeningSocket);
+    printf("Receiver end");
 
-      
     return 0;
 }
