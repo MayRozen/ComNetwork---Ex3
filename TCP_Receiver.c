@@ -1,4 +1,4 @@
-#include<stdio.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -54,16 +54,20 @@ int main()
       
     //Accept and incoming connection
     printf("Waiting for incoming TCP-connections...\n");
-    int accept(listeningSocket, receiverAddress, sizeof(receiverAddress));
+    
+    if(accept(listeningSocket, (struct sockaddr *)&receiverAddress, sizeof(receiverAddress))==-1){
+        printf("accept() failed with error code : %d");
+        return -1; //close the socket
+    }
       
-    struct sockaddr_in clientAddress; 
-    socklen_t clientAddressLen = sizeof(clientAddress);
+    struct sockaddr_in SenderAddress; 
+    socklen_t SenderAddressLen = sizeof(SenderAddress);
 
     while (1)
     {
-    	memset(&clientAddress, 0, sizeof(clientAddress));
-        clientAddressLen = sizeof(clientAddress);
-        int clientSocket = accept(listeningSocket, (struct sockaddr *)&clientAddress, &clientAddressLen);
+    	memset(&SenderAddress, 0, sizeof(SenderAddress));
+        SenderAddressLen = sizeof(SenderAddress);
+        int clientSocket = accept(listeningSocket, (struct sockaddr *)&SenderAddress, &SenderAddressLen);
     	if (clientSocket == -1){
            printf("listen failed with error code : %d");
 	   // TODO: close the sockets
