@@ -7,10 +7,12 @@
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
+#include <fcntl.h>  //file
 
 #include <sys/time.h> 
 
 #define PORT 5060  // The port that the server listens
+#define BUFFER_SIZE 1024
   
 int main()
 {
@@ -83,6 +85,42 @@ int main()
             close(listeningSocket);
             return -1;
     	}
+
+        int file_fd = open(SENDER_FILE, "r"); // Open the file only for reading
+        if (file_fd == NULL) {
+            perror("Failed to open file");
+            close(senderSocket);
+            return -1;
+        }
+
+        // Read the contents of the file and send them over the socket
+        char buffer[BUFFER_SIZE];
+        ssize_t bytes_read;
+        size_t total_bytes_sent = 0;
+        do {
+            bytes_read = read(file_fd, buffer, BUFFER_SIZE);
+            if (bytes_read == -1) {
+                perror("read() failed");
+                close(file_fd);
+                close(senderSocket);
+                return -1;
+            }
+            ssize_t bytes_sent = send(senderSocket, buffer, bytes_read, 0);
+            if (bytes_sent == -1) {
+                perror("send() failed");
+                close(file_fd);
+                close(senderSocket);
+                return -1;
+            }
+            total_bytes_sent += bytes_sent;
+        } while (bytes_read > 0);
+
+        if(total_bytes_sent < 2 * 1024 * 1024){ // Checking the file is a least 2MB
+            perror("The file's size is smaller than expected");
+            close(file_fd);
+            close(senderSocket);
+            return -1;
+        }
 
         gettimeofday(&end_time, NULL);
 
