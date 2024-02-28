@@ -7,10 +7,13 @@
 #include <string.h>
 #include <arpa/inet.h>
 
+// file
 #include <netinet/in.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #define PORT 5060
+#define SENDER_FILE "SenderFile.dat" // The file to sen
 
 int main()
 {
@@ -68,13 +71,10 @@ int main()
 	printf("message was successfully sent .\n");
     }
 
-
 	sleep(3);
-	 
 
     // All open clientSocket descriptors should be kept
     // in some container and closed as well.
-
     close(sock);
 
     return 0; //Exit
