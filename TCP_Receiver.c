@@ -65,7 +65,8 @@ int main()
     // Accept and incoming connection
     printf("Waiting for incoming TCP-connections...\n");
     
-    if(accept(listeningSocket, (struct sockaddr *)&receiverAddress, sizeof(receiverAddress))==-1){
+    socklen_t receiverAddressSize = sizeof(receiverAddress);
+    if(accept(listeningSocket, (struct sockaddr *)&receiverAddress, &receiverAddressSize)==-1){
         printf("accept() failed with error code :");
         close(listeningSocket);
         return -1; //close the socket
@@ -91,9 +92,9 @@ int main()
         ssize_t bytes_read;
         size_t total_bytes_sent = 0;
         do {
-            int random_data = recv(senderSocket, receive_buff, BUFFER_SIZE, 0);
+            ssize_t random_data = recv(senderSocket, receive_buff, BUFFER_SIZE, 0);
 
-            ssize_t bytes_sent = send(senderSocket, random_data, bytes_read, 0);
+            ssize_t bytes_sent = send(senderSocket, &random_data, bytes_read, 0);
             if (bytes_sent == -1) {
                 perror("send() failed");
                 close(senderSocket);
@@ -123,7 +124,7 @@ int main()
         printf("The time is: %.2f\n",milliseconds);
     
         double seconds_taken = seconds + (double)micros / 1000000; // Calculate the time taken in seconds
-        double bandwidth = file_size / seconds_taken; // Calculate the average bandwidth
+        double bandwidth = total_bytes_sent / seconds_taken; // Calculate the average bandwidth hadar change
         printf("Average bandwidth: %.2f bytes/second\n", bandwidth);
 
         size_t file_size = strlen(receive_buff); // Calculate the size of the file received
