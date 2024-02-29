@@ -7,20 +7,45 @@
 #include <string.h>
 #include <arpa/inet.h>
 
-// file
-#include <netinet/in.h>
-#include <unistd.h>
-#include <fcntl.h>
-
 #define PORT 5060
-#define SENDER_FILE "SenderFile.dat" // The file to sen
+#define SENDER_FILE "SenderFile.dat" // The file
+#define BUFFER_SIZE 1024
+
+/*
+* @brief
+A random data generator function based on srand() and rand().
+* @param size
+The size of the data to generate (up to 2^32 bytes).
+* @return
+A pointer to the buffer.
+*/
+char *util_generate_random_data(unsigned int size) {
+    char *buffer = NULL;
+    // Argument check.
+    if (size == 0){
+        return NULL;
+    }
+    buffer = (char *)calloc(size, sizeof(char));
+    // Error checking.
+    if (buffer == NULL){
+        return NULL;
+    }
+    // Randomize the seed of the random number generator.
+    srand(time(NULL));
+    for (unsigned int i = 0; i < size; i++){
+        *(buffer + i) = ((unsigned int)rand() % 256);
+    }
+    return buffer;
+}
 
 int main()
 {
     int sock = socket(AF_INET, SOCK_STREAM, 0); //IPv4, TCP, defulte
+    unsigned int size2 = 2*1024*1024;
+    char *random_data = util_generate_random_data(size2); //Our file
 
-    if(sock == -1)
-    {
+
+    if(sock == -1){
         perror("failed to create socket"); //The socket uncreated
         return -1;
     }
@@ -42,24 +67,43 @@ int main()
 		return -1;
 	}
 
-     // Make a connection to the server with socket SendingSocket.
+     // Make a connection to the Receiver with socket SendingSocket.
 
-    if (connect(sock, (struct sockaddr *) &receiverAddress, sizeof(receiverAddress)) == -1) //Connection with server - if the connection unsucceed, it will return -1
+    if (connect(sock, (struct sockaddr *) &receiverAddress, sizeof(receiverAddress)) == -1) //Connection with Receiver - if the connection unsucceed, it will return -1
     {
-	   printf("connect() failed with error code : %d" );
+	   printf("connect() failed with error code :" );
     }
 
-    printf("connected to server\n");
+    printf("connected to Receiver\n");
 
-    // Sends some data to server
-    char ip4[INET_ADDRSTRLEN] = {0};
+    char ip4[INET_ADDRSTRLEN] = {0}; // Sends the file to Receiver
     inet_ntop(AF_INET, &(receiverAddress.sin_addr), ip4, INET_ADDRSTRLEN);
     printf("The IPv4 address is: %s\n", ip4);
 
-    int bytesSent = send(sock, ip4, INET_ADDRSTRLEN+1, 0); //File
+    int bytesSent = send(sock, ip4, INET_ADDRSTRLEN+1, 0);
+
+    do {
+        ssize_t bytes_sent = send(sock, *random_data, size2, 0);
+        if (bytes_sent == -1) {
+            perror("send() failed");
+            free(*random_data);
+            close(sock);
+            return -1;
+        }
+
+        printf("Do you want to send the file again? y/n");
+        char c = 'a';
+        scanf(" %c", c);
+        if(c == 'y'){
+            continue;;
+        }
+        else if(c == 'n'){
+            break;
+        }
+    } while (size2 > 0);
 
     if(-1 == bytesSent){
-	printf("send() failed with error code : %d" );
+	printf("send() failed with error code :" );
     }
     else if(0 == bytesSent){
 	printf("peer has closed the TCP connection prior to send().\n");
@@ -75,6 +119,7 @@ int main()
 
     // All open clientSocket descriptors should be kept
     // in some container and closed as well.
+    free(*random_data);
     close(sock);
 
     return 0; //Exit
