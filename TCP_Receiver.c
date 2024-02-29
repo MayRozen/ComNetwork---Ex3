@@ -25,7 +25,7 @@ int main()
     double total_time_taken = 0; // Total time taken 
 	 
     if((listeningSocket = socket(AF_INET , SOCK_STREAM , 0 )) == -1){
-        printf("Could not create listening socket: %d" );
+        printf("Could not create listening socket: ");
     }
 
     // "sockaddr_in" is the "derived" from sockaddr structure
@@ -39,7 +39,7 @@ int main()
       
     // Bind the socket to the port with any IP at this port
     if (bind(listeningSocket, (struct sockaddr *)&receiverAddress , sizeof(receiverAddress)) == -1){
-        printf("Bind failed with error code : %d");
+        printf("Bind failed with error code: ");
         close(listeningSocket);
         return -1; // close the socket
     }
@@ -57,8 +57,8 @@ int main()
     if (listen(listeningSocket, 500) == -1) // 500 is a Maximum size of queue connection requests
 											// number of concurrent connections 
     {
-	printf("listen() failed with error code :");
-        close(listeningSocketock);
+	printf("listen() failed with error code: ");
+        close(listeningSocket);
         return -1; // close the socket
     }
       
@@ -67,7 +67,7 @@ int main()
     
     if(accept(listeningSocket, (struct sockaddr *)&receiverAddress, sizeof(receiverAddress))==-1){
         printf("accept() failed with error code :");
-        close(solisteningSocketck);
+        close(listeningSocket);
         return -1; //close the socket
     }
     
@@ -88,11 +88,10 @@ int main()
             return -1;
     	}
 
-        // Read the contents of the file and send them over the socket
         ssize_t bytes_read;
         size_t total_bytes_sent = 0;
         do {
-            int random_data = recv(SendingSocket, receive_buff[0], BUFFER_SIZE, 0);
+            int random_data = recv(senderSocket, receive_buff, BUFFER_SIZE, 0);
 
             ssize_t bytes_sent = send(senderSocket, random_data, bytes_read, 0);
             if (bytes_sent == -1) {
@@ -100,7 +99,14 @@ int main()
                 close(senderSocket);
                 return -1;
             }
+
+            // Check if the received message is an exit message
+            if (strncmp(receive_buff, "EXIT", 4) == 0) {
+                printf("Received exit message from sender\n");
+                break; // Exit the loop if the sender sends an exit message
+            }
             total_bytes_sent += bytes_sent;
+            
         } while (bytes_read > 0);
 
         if(total_bytes_sent < 2 * 1024 * 1024){ // Checking the file is a least 2MB
@@ -116,12 +122,10 @@ int main()
         double milliseconds = (seconds * 1000) + (double)micros / 1000;
         printf("The time is: %.2f\n",milliseconds);
     
-        size_t file_size = strlen(receive_buff); // Calculate the size of the file received
         double seconds_taken = seconds + (double)micros / 1000000; // Calculate the time taken in seconds
         double bandwidth = file_size / seconds_taken; // Calculate the average bandwidth
         printf("Average bandwidth: %.2f bytes/second\n", bandwidth);
 
-        
         size_t file_size = strlen(receive_buff); // Calculate the size of the file received
         total_file_size += file_size; // Accumulate total file size and total time taken
         total_time_taken += (seconds + (double)micros / 1000000);
@@ -140,7 +144,7 @@ int main()
     	printf("A new sender connection accepted\n");
     }
     
-    close(senderSocket);
+    // close(senderSocket);
     close(listeningSocket);
     printf("Receiver end");
 
