@@ -7,17 +7,16 @@
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
-#include <fcntl.h>  //file
 
 #include <sys/time.h> 
 
-#define PORT 5060  // The port that the server listens
+#define PORT 5060  // The port that the Receiver listens
 #define BUFFER_SIZE 1024
   
 int main()
 {
     signal(SIGPIPE, SIG_IGN); // prevent crash on closing socket
-    int listeningSocket = -1; // Open the listening (server) socket
+    int listeningSocket = -1; // Open the listening (Receiver) socket
     char receive_buff[256], send_buff[256];
     struct sockaddr_in sender;
     int sender_size;
@@ -41,10 +40,11 @@ int main()
     // Bind the socket to the port with any IP at this port
     if (bind(listeningSocket, (struct sockaddr *)&receiverAddress , sizeof(receiverAddress)) == -1){
         printf("Bind failed with error code : %d");
+        close(listeningSocket);
         return -1; // close the socket
     }
 
-    // Reuse the address if the server socket on was closed
+    // Reuse the address if the Receiver socket on was closed
 	// and remains for 45 seconds in TIME-WAIT state till the final removal.
     int enableReuse = 1;
     if (setsockopt(listeningSocket, SOL_SOCKET, SO_REUSEADDR, &enableReuse, sizeof(int)) < 0){
@@ -57,7 +57,8 @@ int main()
     if (listen(listeningSocket, 500) == -1) // 500 is a Maximum size of queue connection requests
 											// number of concurrent connections 
     {
-	printf("listen() failed with error code : %d");
+	printf("listen() failed with error code :");
+        close(listeningSocketock);
         return -1; // close the socket
     }
       
@@ -65,10 +66,11 @@ int main()
     printf("Waiting for incoming TCP-connections...\n");
     
     if(accept(listeningSocket, (struct sockaddr *)&receiverAddress, sizeof(receiverAddress))==-1){
-        printf("accept() failed with error code : %d");
+        printf("accept() failed with error code :");
+        close(solisteningSocketck);
         return -1; //close the socket
     }
-      
+    
     struct sockaddr_in senderAddress; 
     socklen_t senderAddressLen = sizeof(senderAddress);
 
@@ -81,34 +83,20 @@ int main()
 
         int senderSocket = accept(listeningSocket, (struct sockaddr *)&senderAddress, &senderAddressLen);
     	if (senderSocket == -1){
-            printf("listen failed with error code: %d");
+            printf("listen failed with error code:");
             close(listeningSocket);
             return -1;
     	}
 
-        int file_fd = open(SENDER_FILE, "r"); // Open the file only for reading
-        if (file_fd == NULL) {
-            perror("Failed to open file");
-            close(senderSocket);
-            return -1;
-        }
-
         // Read the contents of the file and send them over the socket
-        char buffer[BUFFER_SIZE];
         ssize_t bytes_read;
         size_t total_bytes_sent = 0;
         do {
-            bytes_read = read(file_fd, buffer, BUFFER_SIZE);
-            if (bytes_read == -1) {
-                perror("read() failed");
-                close(file_fd);
-                close(senderSocket);
-                return -1;
-            }
-            ssize_t bytes_sent = send(senderSocket, buffer, bytes_read, 0);
+            int random_data = recv(SendingSocket, receive_buff[0], BUFFER_SIZE, 0);
+
+            ssize_t bytes_sent = send(senderSocket, random_data, bytes_read, 0);
             if (bytes_sent == -1) {
                 perror("send() failed");
-                close(file_fd);
                 close(senderSocket);
                 return -1;
             }
@@ -117,7 +105,6 @@ int main()
 
         if(total_bytes_sent < 2 * 1024 * 1024){ // Checking the file is a least 2MB
             perror("The file's size is smaller than expected");
-            close(file_fd);
             close(senderSocket);
             return -1;
         }
@@ -146,13 +133,14 @@ int main()
         sender_size = sizeof(sender);
         if (recvfrom(listeningSocket, (void*)receive_buff, sizeof(receive_buff), 0, (struct sockaddr*) &sender, &sender_size) < 0) {
             perror("failed to receive broadcast message");
-            return -5;
+            return -1;
         }
         printf("%s\n", receive_buff);
       
     	printf("A new sender connection accepted\n");
     }
     
+    close(senderSocket);
     close(listeningSocket);
     printf("Receiver end");
 
