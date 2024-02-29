@@ -18,7 +18,7 @@ runc:
 	./TCP_Sender -ipIP -pPORT -algoALGO
 
 runs-strace:
-	strace -f ./TCP_Receiver
+	strace -f ./TCP_Receiver 
 
 runc-strace:
 	strace -f ./TCP_Sender
