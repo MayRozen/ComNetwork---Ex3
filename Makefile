@@ -1,4 +1,4 @@
-# Makefile for TCP project
+# ----------------- Makefile for TCP ---------------------
 
 all: TCP_Receiver TCP_Sender
 
@@ -22,3 +22,29 @@ runs-strace:
 
 runc-strace:
 	strace -f ./TCP_Sender
+
+
+# ----------------- Makefile for RUDP ---------------------
+
+# all: RUDP_Receiver RUDP_Sender
+
+# RUDP_Receiver: RUDP_Receiver.c
+# 	gcc -o RUDP_Receiver RUDP_Receiver.c
+
+# RUDP_Sender: RUDP_Sender.c
+# 	gcc -o RUDP_Sender RUDP_Sender.c
+
+# clean:
+# 	rm -f *.o RUDP_Receiver RUDP_Sender
+
+# runs:
+# 	./RUDP_Receiver -pPORT
+
+# runc:
+# 	./RUDP_Sender -ipIP -pPORT
+
+# runs-strace:
+# 	strace -f ./RUDP_Receiver
+
+# runc-strace:
+# 	strace -f ./RUDP_Sender
