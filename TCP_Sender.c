@@ -101,6 +101,7 @@ int main(){
             } while (c != 'y' && c != 'n' && c != '\n');  // Clear input buffer
 
             if (c == 'n') {
+                send(sock, "EXIT", sizeof(char*), 0);
                 break;
             }
     } while (size2 > 0);

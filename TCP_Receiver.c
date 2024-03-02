@@ -76,7 +76,6 @@ int main()
         return -1; //close the socket
     }
     
-
     while (1)//need to check when to close the server socket
     {
     	memset(&senderAddress, 0, sizeof(senderAddress));
@@ -91,7 +90,7 @@ int main()
         //     return -1;
     	// }
 
-        ssize_t bytes_read;
+        ssize_t bytes_read = BUFFER_SIZE;
         size_t total_bytes_sent = 0;
         do {
             ssize_t random_data = recv(senderSocket, receive_buff, BUFFER_SIZE, 0);
@@ -116,6 +115,7 @@ int main()
         if(total_bytes_sent < 2 * 1024 * 1024){ // Checking if the file is at least 2MB
             perror("The file's size is smaller than expected");
             close(senderSocket);
+            close(listeningSocket);
             return -1;
         }
 
