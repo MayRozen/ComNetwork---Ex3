@@ -11,9 +11,7 @@
 #include <time.h>
 
 #define PORT 5060
-#define IPADDRESS "192.168.1.1"
-#define SENDER_FILE "SenderFile.dat" // The file
-#define BUFFER_SIZE 1024
+#define IPADDRESS "127.0.0.1"
 
 /*
 * @brief
@@ -46,7 +44,7 @@ int main(){
     printf("start of the sender\n");
     int sock = socket(AF_INET, SOCK_STREAM, 0); //IPv4, TCP, defulte
     unsigned int size2 = 2*1024*1024;
-    char* random_data = util_generate_random_data(size2); //Our file hadar change!!!!!!!!!!!!!!!!!
+    char* random_data = util_generate_random_data(size2); //Our file 
 
     if(sock == -1){
         perror("failed to create socket\n"); //The socket uncreated
@@ -83,11 +81,13 @@ int main(){
     inet_ntop(AF_INET, &(receiverAddress.sin_addr), ip4, INET_ADDRSTRLEN);
     printf("The IPv4 address is: %s\n", ip4);
     
-    int bytesSent = send(sock, ip4, INET_ADDRSTRLEN + 1, 0);
+    int bytesSent;// = send(sock, ip4, INET_ADDRSTRLEN + 1, 0);
+   // printf("bytes sent is: %d\n", bytesSent);
 
     do {
-        ssize_t bytes_sent = send(sock, random_data, size2, 0);  // Use size2 instead of sizeof(random_data)
-        if (bytes_sent == -1) {
+        bytesSent = send(sock, random_data, size2, 0);  // Use size2 instead of sizeof(random_data)
+        printf("bytes sent is: %d\n", bytesSent);
+        if (bytesSent == -1) {
             perror("send() failed\n");
             free(random_data);
             close(sock);

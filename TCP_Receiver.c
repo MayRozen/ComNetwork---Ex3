@@ -65,29 +65,31 @@ int main()
     // Accept and incoming connection
     printf("Waiting for incoming TCP-connections...\n");
     
+    struct sockaddr_in senderAddress; 
+    socklen_t senderAddressLen = sizeof(senderAddress);
+
     socklen_t receiverAddressSize = sizeof(receiverAddress);
-    if(accept(listeningSocket, (struct sockaddr *)&receiverAddress, &receiverAddressSize)==-1){
+    int senderSocket = accept(listeningSocket, (struct sockaddr *)&senderAddress, &senderAddressLen);
+    if(senderSocket==-1){
         printf("accept() failed with error code :");
         close(listeningSocket);
         return -1; //close the socket
     }
     
-    struct sockaddr_in senderAddress; 
-    socklen_t senderAddressLen = sizeof(senderAddress);
 
-    while (1)
+    while (1)//need to check when to close the server socket
     {
     	memset(&senderAddress, 0, sizeof(senderAddress));
         senderAddressLen = sizeof(senderAddress);
 
         gettimeofday(&start_time, NULL);
 
-        int senderSocket = accept(listeningSocket, (struct sockaddr *)&senderAddress, &senderAddressLen);
-    	if (senderSocket == -1){
-            printf("listen failed with error code:");
-            close(listeningSocket);
-            return -1;
-    	}
+        // int senderSocket = accept(listeningSocket, (struct sockaddr *)&senderAddress, &senderAddressLen);
+    	// if (senderSocket == -1){
+        //     printf("listen failed with error code:");
+        //     close(listeningSocket);
+        //     return -1;
+    	// }
 
         ssize_t bytes_read;
         size_t total_bytes_sent = 0;
@@ -95,6 +97,7 @@ int main()
             ssize_t random_data = recv(senderSocket, receive_buff, BUFFER_SIZE, 0);
 
             ssize_t bytes_sent = send(senderSocket, &random_data, bytes_read, 0);
+            printf("bytes sent is: %zu\n", random_data);
             if (bytes_sent == -1) {
                 perror("send() failed");
                 close(senderSocket);
@@ -106,11 +109,11 @@ int main()
                 printf("Received exit message from sender\n");
                 break; // Exit the loop if the sender sends an exit message
             }
-            total_bytes_sent += bytes_sent;
+            total_bytes_sent += random_data;
             
         } while (bytes_read > 0);
-
-        if(total_bytes_sent < 2 * 1024 * 1024){ // Checking the file is a least 2MB
+        printf("the total bytes sent is: %zu\n", total_bytes_sent);
+        if(total_bytes_sent < 2 * 1024 * 1024){ // Checking if the file is at least 2MB
             perror("The file's size is smaller than expected");
             close(senderSocket);
             return -1;
@@ -121,7 +124,7 @@ int main()
         long seconds = end_time.tv_sec - start_time.tv_sec;
         long micros = end_time.tv_usec - start_time.tv_usec;
         double milliseconds = (seconds * 1000) + (double)micros / 1000;
-        printf("The time is: %.2f\n",milliseconds);
+        printf("The time is: %.2f\n", milliseconds);
     
         double seconds_taken = seconds + (double)micros / 1000000; // Calculate the time taken in seconds
         double bandwidth = total_bytes_sent / seconds_taken; // Calculate the average bandwidth hadar change
