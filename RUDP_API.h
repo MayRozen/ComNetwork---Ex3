@@ -1,5 +1,6 @@
 #pragma once
 #include <stdlib.h>
+#include <stdbool.h>
 
 
 typedef struct _rudp_socket;
@@ -23,7 +24,7 @@ int rudp_recv(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size);
 
 // Sends data stores in buffer to the other side. Returns the number of sent bytes on success,
 // 0 if got FIN packet (disconnect), and -1 on error. Fails if called when the socket is disconnected.
-int rudp_send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size);
+int rudpSend(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size);
 
 // Disconnects from an actively connected socket. Returns 1 on success, 0 when the socket is already disconnected (failure).
 int rudp_disconnect(RUDP_Socket *sockfd);

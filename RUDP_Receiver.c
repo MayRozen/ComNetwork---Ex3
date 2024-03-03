@@ -7,8 +7,9 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <signal.h>
 
-#include <RUDP_API.h>
+#include "RUDP_API.h"
 
 #define SERVER_IP_ADDRESS "127.0.0.1"
 #define SERVER_PORT 5060
@@ -22,12 +23,15 @@ int main()
     struct sockaddr_in sender;
     int sender_size;
 
+    if((listeningSocket = socket(AF_INET , SOCK_DGRAM , 0 )) == -1){
+        printf("Could not create listening socket: ");
+    }
+
 	// setup Server address structure
 	struct sockaddr_in RUDPreceiverAddress;
 	memset((char *)&RUDPreceiverAddress, 0, sizeof(RUDPreceiverAddress));
-	RUDPreceiverAddress.sin_family = sockfd;
+	RUDPreceiverAddress.sin_family = AF_INET;
 	RUDPreceiverAddress.sin_port = htons(SERVER_PORT);
-	rudp_connect(RUDP_Socket *sockfd, const char *dest_ip, unsigned short int dest_port);
 
 	//Bind
 	if (bind(listeningSocket, (struct sockaddr *)&RUDPreceiverAddress, sizeof(RUDPreceiverAddress)) == -1){
@@ -46,7 +50,7 @@ int main()
 	while (1)
 	{
 		fflush(stdout);
-
+		char* buffer;
 		// zero client address 
 		memset((char *)&RUDPsenderAddress, 0, sizeof(RUDPsenderAddress));
 		RUDPsenderAddressLen = sizeof(RUDPsenderAddress);

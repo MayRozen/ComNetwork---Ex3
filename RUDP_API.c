@@ -9,6 +9,7 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 
 // A struct that represents RUDP Socket
@@ -40,9 +41,14 @@ int rudp_send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
 }
 
 int rudp_disconnect(RUDP_Socket *sockfd){
-
+    if(sockfd->isConnected == false){
+        printf("you are alredy discinnected");
+        return 0;
+    }
+    sockfd->isConnected = false;
+    return 1;
 }
 
 int rudp_close(RUDP_Socket *sockfd){
-
+    close(sockfd->socket_fd);
 }

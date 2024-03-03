@@ -69,12 +69,6 @@ int main()
     socklen_t senderAddressLen = sizeof(senderAddress);
 
     socklen_t receiverAddressSize = sizeof(receiverAddress);
-    int senderSocket = accept(listeningSocket, (struct sockaddr *)&senderAddress, &senderAddressLen);
-    if(senderSocket==-1){
-        printf("accept() failed with error code :");
-        close(listeningSocket);
-        return -1; //close the socket
-    }
     
     while (1)//need to check when to close the server socket
     {
@@ -83,12 +77,12 @@ int main()
 
         gettimeofday(&start_time, NULL);
 
-        // int senderSocket = accept(listeningSocket, (struct sockaddr *)&senderAddress, &senderAddressLen);
-    	// if (senderSocket == -1){
-        //     printf("listen failed with error code:");
-        //     close(listeningSocket);
-        //     return -1;
-    	// }
+        int senderSocket = accept(listeningSocket, (struct sockaddr *)&senderAddress, &senderAddressLen);
+    	if (senderSocket == -1){
+            printf("listen failed with error code:");
+            close(listeningSocket);
+            return -1;
+    	}
 
         ssize_t bytes_read = BUFFER_SIZE;
         size_t total_bytes_sent = 0;
@@ -141,7 +135,8 @@ int main()
         sender_size = sizeof(sender);
         if (recvfrom(listeningSocket, (void*)receive_buff, sizeof(receive_buff), 0, (struct sockaddr*) &sender, &sender_size) < 0) {
             perror("failed to receive broadcast message");
-            return -1;
+            break;
+            //return -1;
         }
         printf("%s\n", receive_buff);
       
