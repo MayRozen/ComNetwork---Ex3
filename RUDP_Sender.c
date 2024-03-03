@@ -14,6 +14,7 @@
 
 #define SERVER_IP_ADDRESS "127.0.0.1"
 #define SERVER_PORT 5060
+#define FILE_SIZE (2 * 1024 * 1024) // 2MB file size
 
 char *util_generate_random_data(unsigned int size){
     char *buffer;
@@ -44,8 +45,8 @@ int main()
 {
     printf("start of the RUDP_Sender\n");
     // Create socket
-    bool isServer = false;//hadar change
-	RUDP_Socket* rudp_socket = udp_socket(isServer,SERVER_PORT);//hadar change
+    bool isServer = false;
+	RUDP_Socket* rudp_socket = udp_socket(isServer,SERVER_PORT);
     unsigned int size2 = 2*1024*1024;
     char* random_data = util_generate_random_data(size2); //Our file  
 
@@ -112,6 +113,7 @@ int main()
         printf("The socket is already disconnected");
     }
 
+    free(random_data);
 	rudp_close(rudp_socket);
     return 0;
 }
