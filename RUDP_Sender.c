@@ -56,7 +56,7 @@ int main()
 	memset(&RUDPreceiverAddress, 0, sizeof(RUDPreceiverAddress));
 	RUDPreceiverAddress.sin_family = rudp_socket;
 	RUDPreceiverAddress.sin_port = htons(SERVER_PORT);
-	int rudpConnect = rudp_connect(*rudp_socket,SERVER_IP_ADDRESS,SERVER_PORT);
+	int rudpConnect = rudp_connect(rudp_socket,SERVER_IP_ADDRESS,SERVER_PORT);
 	if (rudpConnect == 0){
 		printf("rudp_connect failed");
 		return -1;
