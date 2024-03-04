@@ -11,15 +11,6 @@
 #include <unistd.h>
 #include <stdbool.h>
 
-
-// A struct that represents RUDP Socket
-typedef struct _rudp_socket{
-    int socket_fd; // UDP socket file descriptor
-    bool isServer; // True if the RUDP socket acts like a server, false for client.
-    bool isConnected; // True if there is an active connection, false otherwise.
-    struct sockaddr_in dest_addr; // Destination address. Client fills it when it connects via rudp_connect(), server fills it when it accepts a connection via rudp_accept().
-} RUDP_Socket;
-
 RUDP_Socket* rudp_socket(bool isServer, unsigned short int listen_port){
     RUDP_Socket *sockfd = (RUDP_Socket *)malloc(sizeof(RUDP_Socket));
     if (sockfd == NULL) {
@@ -59,45 +50,62 @@ RUDP_Socket* rudp_socket(bool isServer, unsigned short int listen_port){
 int rudp_connect(RUDP_Socket *sockfd, const char *dest_ip, unsigned short int dest_port){
     if (sockfd == NULL) { // There is no open socket
         fprintf(stderr, "Invalid RUDP socket\n");
-        return -1;
+        return 0;
     }
 
-    if (sockfd->isServer) {
+    if (sockfd->isServer) { // The socket is connected/set to server
         fprintf(stderr, "Cannot connect from server-side socket\n");
-        return -1;
+        return 0;
     }
 
     struct sockaddr_in dest_addr;
     memset(&dest_addr, 0, sizeof(dest_addr));
     dest_addr.sin_family = AF_INET; // IPv4
     dest_addr.sin_port = htons(dest_port);
-    if (inet_pton(AF_INET, dest_ip, &dest_addr.sin_addr) <= 0) {
+    // inet_pton() converts IP addresses from their textual form to their binary form
+    if (inet_pton(AF_INET, dest_ip, &dest_addr.sin_addr) <= 0) { // The socket is already connect
         perror("Invalid address");
-        return -1;
+        return 0;
     }
 
     sockfd->dest_addr = dest_addr;
     sockfd->isConnected = true;
 
-    return 0;
+    return 1;
 }
 
 int rudp_accept(RUDP_Socket *sockfd){
+    if (sockfd == NULL) { // There is no open socket
+        fprintf(stderr, "Invalid RUDP socket\n");
+        return 0;
+    }
+
+    if (!sockfd->isServer) { // The socket is connected/set to client
+        fprintf(stderr, "Cannot accept on client-side socket\n");
+        return 0;
+    }
+
+    return 1; // rudp_accept() successeded
+}
+// -------------------- I nedd to continue from here------------
+int rudp_recv(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
     if (sockfd == NULL) {
         fprintf(stderr, "Invalid RUDP socket\n");
+        return 0;
+    }
+
+    if (!sockfd->isConnected) {
+        fprintf(stderr, "Socket is not connected\n");
         return -1;
     }
 
-    if (!sockfd->isServer) {
-        fprintf(stderr, "Cannot accept on client-side socket\n");
+    ssize_t recv_len = recvfrom(sockfd->socket_fd, buffer, buffer_size, 0, NULL, NULL);
+    if (recv_len == -1) {
+        perror("recvfrom() failed");
         return -1;
     }
 
-    return 0; // rudp_accept() successeded
-}
-
-int rudp_recv(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
-
+    return recv_len;
 }
 
 int rudp_send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
