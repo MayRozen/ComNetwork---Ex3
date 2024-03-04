@@ -12,6 +12,7 @@
 
 #define PORT 5060
 #define IPADDRESS "127.0.0.1"
+#define ALGO "reno"
 
 /*
 * @brief
@@ -40,7 +41,7 @@ char *util_generate_random_data(unsigned int size) {
     return buffer;
 }
 
-int main(){
+int main(int argsc,char *argsv[]){
     printf("start of the sender\n");
     int sock = socket(AF_INET, SOCK_STREAM, 0); //IPv4, TCP, defulte
     unsigned int size2 = 2*1024*1024;
@@ -114,6 +115,9 @@ int main(){
     }
     else if(INET_ADDRSTRLEN+1 > bytesSent){
 	    printf("sent only %d bytes from the required %d.\n", INET_ADDRSTRLEN+1, bytesSent);
+    }
+    else if(strcmp(argsv[2],ALGO) == 0){
+        printf("the algo isn't correct\n");
     }
     else {
 	    printf("message was successfully sent .\n");

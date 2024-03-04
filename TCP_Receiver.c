@@ -91,7 +91,7 @@ int main()
 
             ssize_t bytes_sent = send(senderSocket, &random_data, bytes_read, 0);
             printf("bytes sent is: %zu\n", random_data);
-            if (bytes_sent == -1) {
+            if (bytes_sent == 0) {
                 perror("send() failed");
                 close(senderSocket);
                 return -1;

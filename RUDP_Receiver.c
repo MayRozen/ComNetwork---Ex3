@@ -11,24 +11,24 @@
 #include <sys/time.h> 
 
 #include "RUDP_API.h"
+#include "RUDP_API.c"
 
-#define SERVER_IP_ADDRESS "127.0.0.1"
 #define SERVER_PORT 5060
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 2*1024*1024
 
 
 int main()
 {
+    printf("start reciever\n");
 	signal(SIGPIPE, SIG_IGN); // prevent crash on closing socket
-    int rudp_socket = -1; // Open the listening (Receiver) socket
-    char receive_buff[256], send_buff[256];
+    RUDP_Socket *sockfd = rudp_socket(true,SERVER_PORT);
+    char receive_buff[BUFFER_SIZE], send_buff[BUFFER_SIZE];
     struct sockaddr_in sender;
     int sender_size;
 	struct timeval start_time, end_time;
     size_t total_file_size = 0; // Total file size
     double total_time_taken = 0; // Total time taken 
-
-    if((rudp_socket = socket(AF_INET , SOCK_DGRAM , 0 )) == -1){
+    if(sockfd->socket_fd == -1){
         printf("Could not create listening socket: ");
     }
 
@@ -39,11 +39,23 @@ int main()
 	RUDPreceiverAddress.sin_port = htons(SERVER_PORT);
 
 	//Bind
-	if (bind(rudp_socket, (struct sockaddr *)&RUDPreceiverAddress, sizeof(RUDPreceiverAddress)) == -1){
-		printf("bind() failed");
-		return -1;
-	}
-	printf("After bind(). Waiting for Sender");
+	// if (bind(sockfd->socket_fd, (struct sockaddr *)&RUDPreceiverAddress, sizeof(RUDPreceiverAddress)) == -1){
+	// 	printf("bind() failed\n");
+	// 	return -1;
+	// }
+	// printf("After bind(). Waiting for Sender\n");
+
+    // Make the socket listening; actually mother of all client sockets.
+    if (listen(sockfd->socket_fd, 1) == -1) // 500 is a Maximum size of queue connection requests
+											// number of concurrent connections 
+    {
+	perror("listen() failed with error code: ");
+        rudp_close(sockfd);
+        return -1; // close the socket
+    }
+      
+    // Accept and incoming connection
+    printf("Waiting for incoming RUDP-connections...\n");
 
 	// setup Sender address structure
 	struct sockaddr_in RUDPsenderAddress;
@@ -63,31 +75,31 @@ int main()
 		//clear the buffer by filling null, it might have previously received data
 		memset(buffer, '\0', sizeof (buffer));
 
-		int recv_len = -1;
-		//try to receive some data, this is a blocking call
-		if ((recv_len = recvfrom(rudp_socket, buffer, sizeof(buffer) -1, 0, (struct sockaddr *) &RUDPsenderAddress, &RUDPsenderAddressLen)) == -1){
-			printf("recvfrom() failed");
-			break;
-		}
+		// int recv_len = -1;
+		// //try to receive some data, this is a blocking call
+		// if ((recv_len = recvfrom(sockfd->socket_fd, buffer, sizeof(buffer) -1, 0, (struct sockaddr *) &RUDPsenderAddress, &RUDPsenderAddressLen)) == -1){
+		// 	printf("recvfrom() failed");
+		// 	break;
+		// }
 
 		gettimeofday(&start_time, NULL);
 
-		int senderSocket = accept(rudp_socket, (struct sockaddr *)&RUDPsenderAddress, &RUDPsenderAddressLen);
-    	if (senderSocket == -1){
+		int senderSocket = rudp_accept(sockfd);
+    	if (senderSocket == 0){
             printf("listen failed with error code:");
-            close(rudp_socket);
+            close(sockfd->socket_fd);
             return -1;
     	}
-
+        sockfd->isConnected = true;
 		ssize_t bytes_read = BUFFER_SIZE;
         size_t total_bytes_sent = 0;
         do {
-            ssize_t random_data = recv(senderSocket, receive_buff, BUFFER_SIZE, 0);
+            ssize_t random_data = rudp_recv(sockfd, receive_buff, BUFFER_SIZE);
 
-            ssize_t bytes_sent = send(senderSocket, &random_data, bytes_read, 0);
+            ssize_t bytes_sent = rudp_send(sockfd, &random_data, bytes_read);
             printf("bytes sent is: %zu\n", random_data);
             if (bytes_sent == -1) {
-                perror("send() failed");
+                perror("send() failed\n");
                 close(senderSocket);
                 return -1;
             }
@@ -95,6 +107,7 @@ int main()
             // Check if the received message is an exit message
             if (strncmp(receive_buff, "EXIT", 4) == 0) {
                 printf("Received exit message from sender\n");
+                rudp_disconnect(sockfd);
                 break; // Exit the loop if the sender sends an exit message
             }
             total_bytes_sent += random_data;
@@ -104,7 +117,7 @@ int main()
         if(total_bytes_sent < 2 * 1024 * 1024){ // Checking if the file is at least 2MB
             perror("The file's size is smaller than expected");
             close(senderSocket);
-            close(rudp_socket);
+            close(sockfd->socket_fd);
             return -1;
         }
 
@@ -128,7 +141,7 @@ int main()
         printf("Listening...\n");
         memset(receive_buff, 0, sizeof(receive_buff));
         sender_size = sizeof(sender);
-        if (recvfrom(rudp_socket, (void*)receive_buff, sizeof(receive_buff), 0, (struct sockaddr*) &sender, &sender_size) < 0) {
+        if (recvfrom(sockfd->socket_fd, (void*)receive_buff, sizeof(receive_buff), 0, (struct sockaddr*) &sender, &sender_size) < 0) {
             perror("failed to receive broadcast message");
             break;
             //return -1;
@@ -139,7 +152,7 @@ int main()
     }
 	
 
-	rudp_close(rudp_socket);
-	printf("RUDP_Receiver end");
+	rudp_close(sockfd);
+	printf("RUDP_Receiver end\n");
 	return 0;
 }

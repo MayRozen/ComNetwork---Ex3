@@ -73,6 +73,15 @@ RUDP_Socket* rudp_socket(bool isServer, unsigned short int listen_port){
             free(sockfd);
             return NULL;
         }
+
+            // Reuse the address if the Receiver socket on was closed
+        // and remains for 45 seconds in TIME-WAIT state till the final removal.
+        int enableReuse = 1;
+        if (setsockopt(sockfd->socket_fd, SOL_SOCKET, SO_REUSEADDR, &enableReuse, sizeof(int)) < 0){
+            perror("setsockopt");
+        }
+        
+        printf("Bind() success\n");
     }
 
     return sockfd;
@@ -80,8 +89,10 @@ RUDP_Socket* rudp_socket(bool isServer, unsigned short int listen_port){
 
 int rudp_connect(RUDP_Socket *sockfd, const char *dest_ip, unsigned short int dest_port){
     if (sockfd == NULL) { // There is no open socket
-        fprintf(stderr, "Invalid RUDP socket\n");
-        return 0;
+        //if(connect(sockfd->socket_fd, dest_ip, dest_port)==-1){
+            fprintf(stderr, "Invalid RUDP socket\n");
+            return 0;
+       // }
     }
 
     if (sockfd->isServer) { // The socket is connected/set to server
@@ -90,7 +101,7 @@ int rudp_connect(RUDP_Socket *sockfd, const char *dest_ip, unsigned short int de
     }
 
     struct sockaddr_in dest_addr;
-    memset(&dest_addr, 0, sizeof(dest_addr));
+    memset(&sockfd->dest_addr, 0, sizeof(sockfd->dest_addr));
     dest_addr.sin_family = AF_INET; // IPv4
     dest_addr.sin_port = htons(dest_port);
     // inet_pton() converts IP addresses from their textual form to their binary form
@@ -153,14 +164,18 @@ int rudp_send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
         return -1;
     }
 
-    if (!sockfd->isConnected) {
+    if (!sockfd->isConnected){
         fprintf(stderr, "Socket is not connected\n");
         return 0;
     }
 
-    ssize_t sent_len = sendto(sockfd->socket_fd, buffer, buffer_size, 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
+    int sent_len;
+    sent_len = sendto(sockfd->socket_fd, buffer, sizeof(buffer), 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
+    printf("bytes sent is: %d\n", sent_len);
     if (sent_len == -1) {
         perror("sendto() failed");
+        free(buffer);
+        close(sockfd->socket_fd);
         return -1;
     }
 
@@ -169,7 +184,7 @@ int rudp_send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
 
 int rudp_disconnect(RUDP_Socket *sockfd){
     if(!sockfd->isConnected){
-        printf("you are alredy discinnected");
+       // printf("you are alredy discinnected");
         return 0;
     }
     sockfd->isConnected = false;
