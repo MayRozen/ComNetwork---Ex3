@@ -86,7 +86,7 @@ int main()
 
 		int senderSocket = rudp_accept(sockfd);
     	if (senderSocket == 0){
-            printf("listen failed with error code:");
+            printf("listen failed with error code");
             close(sockfd->socket_fd);
             return -1;
     	}
@@ -96,7 +96,7 @@ int main()
         do {
             ssize_t random_data = rudp_recv(sockfd, receive_buff, BUFFER_SIZE);
 
-            ssize_t bytes_sent = rudp_send(sockfd, &random_data, bytes_read);
+            ssize_t bytes_sent = rudp_Send(sockfd, &random_data, bytes_read);
             printf("bytes sent is: %zu\n", random_data);
             if (bytes_sent == -1) {
                 perror("send() failed\n");

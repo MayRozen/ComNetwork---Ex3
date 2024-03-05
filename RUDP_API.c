@@ -10,7 +10,7 @@
 #include <stdbool.h>
 
 #include "RUDP_API.h"
-
+#define MAX_UDP 1472
 /*
 * @brief A checksum function that returns 16 bit checksum for data.
 * @param data The data to do the checksum for.
@@ -109,7 +109,6 @@ int rudp_connect(RUDP_Socket *sockfd, const char *dest_ip, unsigned short int de
         perror("Invalid address");
         return 0;
     }
-
     sockfd->dest_addr = dest_addr;
     sockfd->isConnected = true;
 
@@ -147,7 +146,7 @@ int rudp_recv(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
         return -1;
     }
 
-    unsigned int rudp_recv_checksum = calculate_checksum(sockfd, recv_len);
+    unsigned int rudp_recv_checksum = calculate_checksum(buffer, buffer_size);
     if(rudp_recv_checksum == buffer_size){
         printf("The data received intactly. \n");
     }
@@ -158,25 +157,49 @@ int rudp_recv(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
     return recv_len;
 }
 // -------------------- I need to continue from here------------
-int rudp_send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
+int rudp_Send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
     if (sockfd == NULL) {
         fprintf(stderr, "Invalid RUDP socket\n");
+        free(buffer);
+        close(sockfd->socket_fd);
         return -1;
     }
 
     if (!sockfd->isConnected){
         fprintf(stderr, "Socket is not connected\n");
+        free(buffer);
+        close(sockfd->socket_fd);
         return 0;
     }
 
+    // int sent_len;
+    // sent_len = sendto(sockfd->socket_fd, buffer, buffer_size, 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(struct sockaddr_in));
+    // printf("bytes sent is: %d\n", buffer_size);
+    // if (sent_len == -1) {
+    //     perror("sendto() failed");
+    //     free(buffer);
+    //     close(sockfd->socket_fd);
+    //     return -1;
+    // }
+
+    size_t remaining = buffer_size;
+    int bytesSent;
     int sent_len;
-    sent_len = sendto(sockfd->socket_fd, buffer, sizeof(buffer), 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
-    printf("bytes sent is: %d\n", sent_len);
-    if (sent_len == -1) {
-        perror("sendto() failed");
-        free(buffer);
-        close(sockfd->socket_fd);
-        return -1;
+    while (remaining > 0) {
+        size_t chunk_size = (remaining > MAX_UDP) ? MAX_UDP : remaining;
+
+        sent_len = sendto(sockfd->socket_fd, buffer, chunk_size, 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
+        if (sent_len == -1) {
+            perror("sendto() failed");
+            free(buffer);
+            close(sockfd->socket_fd);
+            break;
+            return -1;
+            // Handle the error, e.g., return or exit
+        }
+
+        bytesSent += sent_len;
+        remaining -= sent_len;
     }
 
     return sent_len;
