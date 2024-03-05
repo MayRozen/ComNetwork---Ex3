@@ -29,7 +29,7 @@ int main()
     size_t total_file_size = 0; // Total file size
     double total_time_taken = 0; // Total time taken 
     if(sockfd->socket_fd == -1){
-        printf("Could not create listening socket: ");
+        printf("Could not create listening socket\n");
     }
 
 	// setup Server address structure
@@ -37,22 +37,6 @@ int main()
 	memset((char *)&RUDPreceiverAddress, 0, sizeof(RUDPreceiverAddress));
 	RUDPreceiverAddress.sin_family = AF_INET;
 	RUDPreceiverAddress.sin_port = htons(SERVER_PORT);
-
-	//Bind
-	// if (bind(sockfd->socket_fd, (struct sockaddr *)&RUDPreceiverAddress, sizeof(RUDPreceiverAddress)) == -1){
-	// 	printf("bind() failed\n");
-	// 	return -1;
-	// }
-	// printf("After bind(). Waiting for Sender\n");
-
-    // Make the socket listening; actually mother of all client sockets.
-    if (listen(sockfd->socket_fd, 1) == -1) // 500 is a Maximum size of queue connection requests
-											// number of concurrent connections 
-    {
-	perror("listen() failed with error code: ");
-        rudp_close(sockfd);
-        return -1; // close the socket
-    }
       
     // Accept and incoming connection
     printf("Waiting for incoming RUDP-connections...\n");
@@ -62,42 +46,27 @@ int main()
 	socklen_t RUDPsenderAddressLen = sizeof(RUDPsenderAddress);
 
 	memset((char *)&RUDPsenderAddress, 0, sizeof(RUDPsenderAddress));
-
 	//keep listening for data
 	while (1)
 	{
-		fflush(stdout);
 		char* buffer;
 		// zero Sender address 
 		memset((char *)&RUDPsenderAddress, 0, sizeof(RUDPsenderAddress));
 		RUDPsenderAddressLen = sizeof(RUDPsenderAddress);
-
-		//clear the buffer by filling null, it might have previously received data
-		memset(buffer, '\0', sizeof (buffer));
-
-		// int recv_len = -1;
-		// //try to receive some data, this is a blocking call
-		// if ((recv_len = recvfrom(sockfd->socket_fd, buffer, sizeof(buffer) -1, 0, (struct sockaddr *) &RUDPsenderAddress, &RUDPsenderAddressLen)) == -1){
-		// 	printf("recvfrom() failed");
-		// 	break;
-		// }
-
-		gettimeofday(&start_time, NULL);
-
 		int senderSocket = rudp_accept(sockfd);
     	if (senderSocket == 0){
             printf("listen failed with error code");
-            close(sockfd->socket_fd);
+            rudp_close(sockfd);
             return -1;
     	}
         sockfd->isConnected = true;
 		ssize_t bytes_read = BUFFER_SIZE;
         size_t total_bytes_sent = 0;
+        gettimeofday(&start_time, NULL);
         do {
-            ssize_t random_data = rudp_recv(sockfd, receive_buff, BUFFER_SIZE);
-
+            int random_data = rudp_recv(sockfd, receive_buff, BUFFER_SIZE);
             ssize_t bytes_sent = rudp_Send(sockfd, &random_data, bytes_read);
-            printf("bytes sent is: %zu\n", random_data);
+            printf("bytes sent is: %d\n", random_data);
             if (bytes_sent == -1) {
                 perror("send() failed\n");
                 close(senderSocket);

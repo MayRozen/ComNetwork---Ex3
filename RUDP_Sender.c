@@ -39,6 +39,7 @@ int main()
 {
     printf("start of the RUDP_Sender\n");
     // Create socket
+    printf("test");
 	RUDP_Socket* rudpSocket = rudp_socket(false,SERVER_PORT);
     unsigned int size2 = 2*1024*1024;
     char* random_data = util_generate_random_data(size2); //Our file  
@@ -61,37 +62,40 @@ int main()
 		return -1;
 	}           
     else if(rudpConnect == 1){
-        printf("rudp_connect success!\n");
+        char* buffer_ACK;
+        recvfrom(rudpSocket->socket_fd, buffer_ACK, BUFFER_SIZE, 0, NULL, NULL);
+        if(strcmp(buffer_ACK,"ACK")==0){
+            printf("rudp_connect success!\n");
+        }
+        else{
+            printf("rudp_connect failed\n");
+		    return -1;
+        }
     }
 
+    
 	while(1){
+        char* tmpbuffer;
+        
         //send the message
-        int rudpSend = rudp_send(rudpSocket,random_data,size2);
-        // if(!rudpSocket->isConnected){
-        //     perror("The socket disconnected\n");
-        //     return -1;
-        // }
-        // else if(rudpConnect == 0){
-        //     printf("The packet disconnected\n");
-        //     return 0;
-        // }
-        // else{
-        //     return rudpSend;
-        // }
+        int rudpSend = rudp_Send(rudpSocket,random_data,size2);
         if(rudpSend<=0){
             free(random_data);
             close(rudpSocket->socket_fd);
             return -1;
         }
+        rudp_recv(rudpSocket, tmpbuffer, sizeof(tmpbuffer));
+        if (strcmp(tmpbuffer,"ACK") != 0){
+            // Acknowledgment received, break the loop
+            break;
+        } 
         printf("Send the file again? y/n\n");
         char c = getchar();
         if(c == 'n'){
-            rudp_send(rudpSocket,"EXIT",4);
+            rudp_Send(rudpSocket,"EXIT",4);
             break;
         }
-        else{
-            continue;
-        }
+        usleep(100);
     }
 
 	struct sockaddr_in fromAddress;

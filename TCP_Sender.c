@@ -116,7 +116,7 @@ int main(int argsc,char *argsv[]){
     else if(INET_ADDRSTRLEN+1 > bytesSent){
 	    printf("sent only %d bytes from the required %d.\n", INET_ADDRSTRLEN+1, bytesSent);
     }
-    else if(strcmp(argsv[2],ALGO) == 0){
+    else if(strcmp(argsv[2],ALGO) != 0){
         printf("the algo isn't correct\n");
     }
     else {

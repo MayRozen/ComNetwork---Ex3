@@ -12,6 +12,7 @@
 
 #define PORT 5060  // The port that the Receiver listens
 #define BUFFER_SIZE 1024
+#define ALGO "reno"
   
 int main()
 {

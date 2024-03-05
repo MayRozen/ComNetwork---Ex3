@@ -11,6 +11,7 @@
 
 #include "RUDP_API.h"
 #define MAX_UDP 1472
+#define BUFFER_SIZE 2*1024*1024
 /*
 * @brief A checksum function that returns 16 bit checksum for data.
 * @param data The data to do the checksum for.
@@ -60,7 +61,7 @@ RUDP_Socket* rudp_socket(bool isServer, unsigned short int listen_port){
     sockfd->isConnected = false;
 
     // Server-specific setup
-    if (isServer) {
+    if (sockfd->isServer) {
         struct sockaddr_in server_addr;
         memset(&server_addr, 0, sizeof(server_addr));
         server_addr.sin_family = AF_INET;
@@ -88,6 +89,7 @@ RUDP_Socket* rudp_socket(bool isServer, unsigned short int listen_port){
 }
 
 int rudp_connect(RUDP_Socket *sockfd, const char *dest_ip, unsigned short int dest_port){
+    char* buffer;
     if (sockfd == NULL) { // There is no open socket
         //if(connect(sockfd->socket_fd, dest_ip, dest_port)==-1){
             fprintf(stderr, "Invalid RUDP socket\n");
@@ -111,11 +113,12 @@ int rudp_connect(RUDP_Socket *sockfd, const char *dest_ip, unsigned short int de
     }
     sockfd->dest_addr = dest_addr;
     sockfd->isConnected = true;
-
+    sendto(sockfd->socket_fd, "connection request", sizeof("connection request"), 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
     return 1;
 }
 
 int rudp_accept(RUDP_Socket *sockfd){
+    char* buffer;
     if (sockfd == NULL) { // There is no open socket
         fprintf(stderr, "Invalid RUDP socket\n");
         return 0;
@@ -124,6 +127,12 @@ int rudp_accept(RUDP_Socket *sockfd){
     if (!sockfd->isServer) { // The socket is connected/set to client
         fprintf(stderr, "Cannot accept on client-side socket\n");
         return 0;
+    }
+    else if(recvfrom(sockfd->socket_fd, buffer, BUFFER_SIZE, 0, NULL, NULL)!=-1){
+        if(strcmp(buffer,"connection request")==0){
+            sendto(sockfd->socket_fd, "ACK", sizeof("ACK"), 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
+            printf("connection request recieved, sending ACK");
+        }
     }
 
     return 1; // rudp_accept() successeded
@@ -142,7 +151,7 @@ int rudp_recv(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
 
     ssize_t recv_len = recvfrom(sockfd->socket_fd, buffer, buffer_size, 0, NULL, NULL);
     if (recv_len == -1) {
-        perror("recvfrom() failed \n");
+        perror("recvfrom() failed");
         return -1;
     }
 
@@ -150,10 +159,14 @@ int rudp_recv(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
     if(rudp_recv_checksum == buffer_size){
         printf("The data received intactly. \n");
     }
-    else{
-        return -1;
+    if(sockfd->isServer){
+        if(buffer == "EXIT"){
+            printf("sender sent exit message");
+            return recv_len; 
+        }
+        printf("sending ACK\n");
+        sendto(sockfd->socket_fd, "ACK", sizeof("ACK"), 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
     }
-
     return recv_len;
 }
 // -------------------- I need to continue from here------------
@@ -172,16 +185,6 @@ int rudp_Send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
         return 0;
     }
 
-    // int sent_len;
-    // sent_len = sendto(sockfd->socket_fd, buffer, buffer_size, 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(struct sockaddr_in));
-    // printf("bytes sent is: %d\n", buffer_size);
-    // if (sent_len == -1) {
-    //     perror("sendto() failed");
-    //     free(buffer);
-    //     close(sockfd->socket_fd);
-    //     return -1;
-    // }
-
     size_t remaining = buffer_size;
     int bytesSent;
     int sent_len;
@@ -191,7 +194,6 @@ int rudp_Send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
         sent_len = sendto(sockfd->socket_fd, buffer, chunk_size, 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
         if (sent_len == -1) {
             perror("sendto() failed");
-            free(buffer);
             close(sockfd->socket_fd);
             break;
             return -1;
@@ -216,5 +218,6 @@ int rudp_disconnect(RUDP_Socket *sockfd){
 
 int rudp_close(RUDP_Socket *sockfd){
     close(sockfd->socket_fd);
+    free(sockfd);
     return 0;
 }
