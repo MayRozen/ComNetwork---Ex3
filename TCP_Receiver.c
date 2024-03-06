@@ -7,6 +7,7 @@
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
+#include <netinet/tcp.h>
 
 #include <sys/time.h> 
 
@@ -14,8 +15,14 @@
 #define BUFFER_SIZE 1024
 #define ALGO "reno"
   
-int main()
+int main(int argc,char *argv[])
 {
+    if (argc != 7) {
+        fprintf(stderr, "Usage: %s <congestion_algorithm>\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+    const char *congestion_algo = argv[6];
+    const int port = (int) argv[4];
     signal(SIGPIPE, SIG_IGN); // prevent crash on closing socket
     int listeningSocket = -1; // Open the listening (Receiver) socket
     char receive_buff[256], send_buff[256];
@@ -36,7 +43,7 @@ int main()
 
     receiverAddress.sin_family = AF_INET;
     receiverAddress.sin_addr.s_addr = INADDR_ANY;
-    receiverAddress.sin_port = htons(PORT);  // network order
+    receiverAddress.sin_port = htons(port);  // network order
       
     // Bind the socket to the port with any IP at this port
     if (bind(listeningSocket, (struct sockaddr *)&receiverAddress , sizeof(receiverAddress)) == -1){
@@ -85,6 +92,11 @@ int main()
             return -1;
     	}
 
+        if (setsockopt(senderSocket, IPPROTO_TCP, TCP_CONGESTION, congestion_algo, strlen(congestion_algo)) == -1) {
+            perror("setsockopt");
+            exit(EXIT_FAILURE);
+        }
+
         ssize_t bytes_read = BUFFER_SIZE;
         size_t total_bytes_sent = 0;
         do {
@@ -101,7 +113,9 @@ int main()
             // Check if the received message is an exit message
             if (strncmp(receive_buff, "EXIT", 4) == 0) {
                 printf("Received exit message from sender\n");
-                break; // Exit the loop if the sender sends an exit message
+                close(listeningSocket);
+                printf("Receiver end");
+                return 0; // stop the listening if the sender sends an exit message
             }
             total_bytes_sent += random_data;
             
@@ -144,7 +158,6 @@ int main()
     	printf("A new sender connection accepted\n");
     }
     
-    // close(senderSocket);
     close(listeningSocket);
     printf("Receiver end");
 

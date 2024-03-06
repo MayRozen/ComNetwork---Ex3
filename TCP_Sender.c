@@ -9,10 +9,7 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <time.h>
-
-#define PORT 5060
-#define IPADDRESS "127.0.0.1"
-#define ALGO "reno"
+#include <netinet/tcp.h>
 
 /*
 * @brief
@@ -41,8 +38,15 @@ char *util_generate_random_data(unsigned int size) {
     return buffer;
 }
 
-int main(int argsc,char *argsv[]){
+int main(int argc,char *argv[]){
     printf("start of the sender\n");
+    if (argc != 9) {//if the user didn't send all the arguments 
+        fprintf(stderr, "Usage: %s <congestion_algorithm>\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+    const char *server_ip = argv[4];
+    const char *congestion_algo = argv[8];
+    const int port = (int) argv[6];
     int sock = socket(AF_INET, SOCK_STREAM, 0); //IPv4, TCP, defulte
     unsigned int size2 = 2*1024*1024;
     char* random_data = util_generate_random_data(size2); //Our file 
@@ -58,12 +62,12 @@ int main(int argsc,char *argsv[]){
     struct sockaddr_in receiverAddress; //IPv4 only!
     memset(&receiverAddress, 0, sizeof(receiverAddress)); //Reset before every use
     receiverAddress.sin_family = AF_INET; //Address family, AF_INET unsigned.
-    receiverAddress.sin_port = htons(PORT); //PORT number - bigqlittle endian
+    receiverAddress.sin_port = htons(port); //PORT number - bigqlittle endian
 
     struct in_addr sin_addr; //Internet address
     char sin_zero[2]; //2 MB
 
-	int rval = inet_pton(AF_INET, IPADDRESS, &receiverAddress.sin_addr); //Casting to binary - 0=secceeded, 1=fail.
+	int rval = inet_pton(AF_INET, server_ip, &receiverAddress.sin_addr); //Casting to binary - 0=secceeded, 1=fail.
     if (rval <= 0){
 		printf("inet_pton() failed\n");
 		return -1;
@@ -76,15 +80,18 @@ int main(int argsc,char *argsv[]){
 	   printf("connect() failed with error code :\n" );
     }
 
+    if (setsockopt(sock, IPPROTO_TCP, TCP_CONGESTION, congestion_algo, strlen(congestion_algo)) == -1){
+        perror("setsockopt");//if the congestion control failed
+        exit(EXIT_FAILURE);
+    }
+
     printf("connected to Receiver\n");
 
     char ip4[INET_ADDRSTRLEN] = {0}; // Sends the file to Receiver
     inet_ntop(AF_INET, &(receiverAddress.sin_addr), ip4, INET_ADDRSTRLEN);
     printf("The IPv4 address is: %s\n", ip4);
     
-    int bytesSent;// = send(sock, ip4, INET_ADDRSTRLEN + 1, 0);
-   // printf("bytes sent is: %d\n", bytesSent);
-
+    int bytesSent;
     do {
         bytesSent = send(sock, random_data, size2, 0);  // Use size2 instead of sizeof(random_data)
         printf("bytes sent is: %d\n", bytesSent);
@@ -115,9 +122,6 @@ int main(int argsc,char *argsv[]){
     }
     else if(INET_ADDRSTRLEN+1 > bytesSent){
 	    printf("sent only %d bytes from the required %d.\n", INET_ADDRSTRLEN+1, bytesSent);
-    }
-    else if(strcmp(argsv[2],ALGO) != 0){
-        printf("the algo isn't correct\n");
     }
     else {
 	    printf("message was successfully sent .\n");
