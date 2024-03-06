@@ -26,7 +26,7 @@ int main(int argc,char *argv[])
     const int port = atoi(argv[1]);
     signal(SIGPIPE, SIG_IGN); // prevent crash on closing socket
     int listeningSocket = -1; // Open the listening (Receiver) socket
-    char receive_buff[256], send_buff[256];
+    char receive_buff[BUFFER_SIZE], send_buff[BUFFER_SIZE];
     struct sockaddr_in sender;
     int sender_size;
     struct timeval start_time, end_time;
@@ -96,10 +96,12 @@ int main(int argc,char *argv[])
     printf("Sender connected, beginning to recieve file...\n");
     ssize_t bytes_read = BUFFER_SIZE;
     size_t total_bytes_sent = 0;
+    ssize_t random_data;
     do {
-        ssize_t random_data = recv(senderSocket, receive_buff, BUFFER_SIZE, 0);
+        random_data = recv(senderSocket, receive_buff, BUFFER_SIZE, 0);
 
-        ssize_t bytes_sent = send(senderSocket, &random_data, bytes_read, 0);
+        //ssize_t bytes_sent = send(senderSocket, &random_data, bytes_read, 0);
+        ssize_t bytes_sent = send(senderSocket, receive_buff, random_data, 0);
         if (bytes_sent == 0) {
             perror("send() failed");
             close(senderSocket);
@@ -135,7 +137,7 @@ int main(int argc,char *argv[])
     double bandwidth = total_bytes_sent / seconds_taken; // Calculate the average bandwidth hadar change
     printf("Average bandwidth: %.2f bytes/second\n", bandwidth);
 
-    size_t file_size = strlen(receive_buff); // Calculate the size of the file received
+    size_t file_size = random_data; // Calculate the size of the file received
     total_file_size += file_size; // Accumulate total file size and total time taken
     total_time_taken += (seconds + (double)micros / 1000000);
     double total_average_bandwidth = total_file_size / total_time_taken; // Calculate the average bandwidth
@@ -143,6 +145,6 @@ int main(int argc,char *argv[])
 
     close(senderSocket);
     close(listeningSocket);
-    printf("Reciever end");
+    printf("Reciever end\n");
     return 0;
 }
