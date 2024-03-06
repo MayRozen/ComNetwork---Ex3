@@ -40,13 +40,14 @@ char *util_generate_random_data(unsigned int size) {
 
 int main(int argc,char *argv[]){
     printf("start of the sender\n");
-    if (argc != 9) {//if the user didn't send all the arguments 
+    printf("num argument is: %d\n", argc);
+    if (argc != 4) {//if the user didn't send all the arguments 
         fprintf(stderr, "Usage: %s <congestion_algorithm>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
-    const char *server_ip = argv[4];
-    const char *congestion_algo = argv[8];
-    const int port = (int) argv[6];
+    const int port = atoi(argv[1]);
+    const char *server_ip = argv[2];
+    const char *congestion_algo = argv[3];
     int sock = socket(AF_INET, SOCK_STREAM, 0); //IPv4, TCP, defulte
     unsigned int size2 = 2*1024*1024;
     char* random_data = util_generate_random_data(size2); //Our file 

@@ -17,12 +17,13 @@
   
 int main(int argc,char *argv[])
 {
-    if (argc != 7) {
+    printf("starting Reciever...\n");
+    if (argc != 3) {
         fprintf(stderr, "Usage: %s <congestion_algorithm>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
-    const char *congestion_algo = argv[6];
-    const int port = (int) argv[4];
+    const char *congestion_algo = argv[2];
+    const int port = atoi(argv[1]);
     signal(SIGPIPE, SIG_IGN); // prevent crash on closing socket
     int listeningSocket = -1; // Open the listening (Receiver) socket
     char receive_buff[256], send_buff[256];
@@ -40,7 +41,6 @@ int main(int argc,char *argv[])
     // used for IPv4 communication. For IPv6, use sockaddr_in6
     struct sockaddr_in receiverAddress;
     memset(&receiverAddress, 0, sizeof(receiverAddress));
-
     receiverAddress.sin_family = AF_INET;
     receiverAddress.sin_addr.s_addr = INADDR_ANY;
     receiverAddress.sin_port = htons(port);  // network order
@@ -78,88 +78,71 @@ int main(int argc,char *argv[])
 
     socklen_t receiverAddressSize = sizeof(receiverAddress);
     
-    while (1)//need to check when to close the server socket
-    {
-    	memset(&senderAddress, 0, sizeof(senderAddress));
-        senderAddressLen = sizeof(senderAddress);
+    memset(&senderAddress, 0, sizeof(senderAddress));
+    senderAddressLen = sizeof(senderAddress);
 
-        gettimeofday(&start_time, NULL);
+    gettimeofday(&start_time, NULL);
 
-        int senderSocket = accept(listeningSocket, (struct sockaddr *)&senderAddress, &senderAddressLen);
-    	if (senderSocket == -1){
-            printf("listen failed with error code:");
-            close(listeningSocket);
-            return -1;
+    int senderSocket = accept(listeningSocket, (struct sockaddr *)&senderAddress, &senderAddressLen);
+    if (senderSocket == -1){
+        printf("listen failed with error code:");
+        close(listeningSocket);
+        return -1;
     	}
+    if (setsockopt(senderSocket, IPPROTO_TCP, TCP_CONGESTION, congestion_algo, strlen(congestion_algo)) == -1) {
+        perror("setsockopt");
+        exit(EXIT_FAILURE);
+    }
+    printf("Sender connected, beginning to recieve file...\n");
+    ssize_t bytes_read = BUFFER_SIZE;
+    size_t total_bytes_sent = 0;
+    do {
+        ssize_t random_data = recv(senderSocket, receive_buff, BUFFER_SIZE, 0);
 
-        if (setsockopt(senderSocket, IPPROTO_TCP, TCP_CONGESTION, congestion_algo, strlen(congestion_algo)) == -1) {
-            perror("setsockopt");
-            exit(EXIT_FAILURE);
-        }
-
-        ssize_t bytes_read = BUFFER_SIZE;
-        size_t total_bytes_sent = 0;
-        do {
-            ssize_t random_data = recv(senderSocket, receive_buff, BUFFER_SIZE, 0);
-
-            ssize_t bytes_sent = send(senderSocket, &random_data, bytes_read, 0);
-            printf("bytes sent is: %zu\n", random_data);
-            if (bytes_sent == 0) {
-                perror("send() failed");
-                close(senderSocket);
-                return -1;
-            }
-
-            // Check if the received message is an exit message
-            if (strncmp(receive_buff, "EXIT", 4) == 0) {
-                printf("Received exit message from sender\n");
-                close(listeningSocket);
-                printf("Receiver end");
-                return 0; // stop the listening if the sender sends an exit message
-            }
-            total_bytes_sent += random_data;
-            
-        } while (bytes_read > 0);
-        printf("the total bytes sent is: %zu\n", total_bytes_sent);
-        if(total_bytes_sent < 2 * 1024 * 1024){ // Checking if the file is at least 2MB
-            perror("The file's size is smaller than expected");
+        ssize_t bytes_sent = send(senderSocket, &random_data, bytes_read, 0);
+        if (bytes_sent == 0) {
+            perror("send() failed");
             close(senderSocket);
-            close(listeningSocket);
             return -1;
         }
+        printf("File trasfer completed.\n");
+        printf("Waiting for Sender response...\n");
 
-        gettimeofday(&end_time, NULL);
-
-        long seconds = end_time.tv_sec - start_time.tv_sec;
-        long micros = end_time.tv_usec - start_time.tv_usec;
-        double milliseconds = (seconds * 1000) + (double)micros / 1000;
-        printf("The time is: %.2f\n", milliseconds);
-    
-        double seconds_taken = seconds + (double)micros / 1000000; // Calculate the time taken in seconds
-        double bandwidth = total_bytes_sent / seconds_taken; // Calculate the average bandwidth hadar change
-        printf("Average bandwidth: %.2f bytes/second\n", bandwidth);
-
-        size_t file_size = strlen(receive_buff); // Calculate the size of the file received
-        total_file_size += file_size; // Accumulate total file size and total time taken
-        total_time_taken += (seconds + (double)micros / 1000000);
-        double total_average_bandwidth = total_file_size / total_time_taken; // Calculate the average bandwidth
-        printf("Total Average Bandwidth: %.2f bytes/second\n", total_average_bandwidth);
-
-        printf("Listening...\n");
-        memset(receive_buff, 0, sizeof(receive_buff));
-        sender_size = sizeof(sender);
-        if (recvfrom(listeningSocket, (void*)receive_buff, sizeof(receive_buff), 0, (struct sockaddr*) &sender, &sender_size) < 0) {
-            perror("failed to receive broadcast message");
-            break;
-            //return -1;
+        // Check if the received message is an exit message
+        if (strncmp(receive_buff, "EXIT", 4) == 0) {
+            printf("Received exit message from sender\n");
+            break; // stop the listening if the sender sends an exit message
         }
-        printf("%s\n", receive_buff);
-      
-    	printf("A new sender connection accepted\n");
-    }
-    
-    close(listeningSocket);
-    printf("Receiver end");
+        total_bytes_sent += random_data;
+            
+    } while (bytes_read > 0);
 
+    if(total_bytes_sent < 2 * 1024 * 1024){ // Checking if the file is at least 2MB
+        perror("The file's size is smaller than expected");
+        close(senderSocket);
+        close(listeningSocket);
+        return -1;
+    }
+
+    gettimeofday(&end_time, NULL);
+    printf("           *Statistics*\n");
+    long seconds = end_time.tv_sec - start_time.tv_sec;
+    long micros = end_time.tv_usec - start_time.tv_usec;
+    double milliseconds = (seconds * 1000) + (double)micros / 1000;
+    printf("The time is: %.2f\n", milliseconds);
+    
+    double seconds_taken = seconds + (double)micros / 1000000; // Calculate the time taken in seconds
+    double bandwidth = total_bytes_sent / seconds_taken; // Calculate the average bandwidth hadar change
+    printf("Average bandwidth: %.2f bytes/second\n", bandwidth);
+
+    size_t file_size = strlen(receive_buff); // Calculate the size of the file received
+    total_file_size += file_size; // Accumulate total file size and total time taken
+    total_time_taken += (seconds + (double)micros / 1000000);
+    double total_average_bandwidth = total_file_size / total_time_taken; // Calculate the average bandwidth
+    printf("Total Average Bandwidth: %.2f bytes/second\n", total_average_bandwidth);
+
+    close(senderSocket);
+    close(listeningSocket);
+    printf("Reciever end");
     return 0;
 }
