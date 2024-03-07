@@ -13,9 +13,6 @@
 #include "RUDP_API.h"
 #include "RUDP_API.c"
 
-#define SERVER_IP_ADDRESS "127.0.0.1"
-#define SERVER_PORT 5060
-
 char *util_generate_random_data(unsigned int size){
     char *buffer;
     // Argument check.
@@ -35,15 +32,19 @@ char *util_generate_random_data(unsigned int size){
     return buffer;
 }
 
-int main()
-{
+int main(int argc, char *argv[]){
     printf("start of the RUDP_Sender\n");
+    if (argc != 3) {//if the user didn't send all the arguments 
+        fprintf(stderr, "Usage: %s <congestion_algorithm>\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
     // Create socket
-    printf("test");
-	RUDP_Socket* rudpSocket = rudp_socket(false,SERVER_PORT);
+    
+    const int port = atoi(argv[1]);
+    const char *server_ip = argv[2];
+	RUDP_Socket* rudpSocket = rudp_socket(false,port);
     unsigned int size2 = 2*1024*1024;
     char* random_data = util_generate_random_data(size2); //Our file  
-
     if(rudpSocket->socket_fd == -1){
         perror("failed to create socket\n"); //The socket uncreated
         return -1;
@@ -54,24 +55,27 @@ int main()
     struct sockaddr_in RUDPreceiverAddress;
 	memset(&RUDPreceiverAddress, 0, sizeof(RUDPreceiverAddress));
 	RUDPreceiverAddress.sin_family = AF_INET;
-	RUDPreceiverAddress.sin_port = htons(SERVER_PORT);
+	RUDPreceiverAddress.sin_port = htons(port);
 
-	int rudpConnect = rudp_connect(rudpSocket,SERVER_IP_ADDRESS,SERVER_PORT);
+	int rudpConnect = rudp_connect(rudpSocket,server_ip,port);
 	if (rudpConnect <= 0){
 		printf("rudp_connect failed\n");
 		return -1;
 	}           
-    else if(rudpConnect == 1){
-        char* buffer_ACK;
-        recvfrom(rudpSocket->socket_fd, buffer_ACK, BUFFER_SIZE, 0, NULL, NULL);
-        if(strcmp(buffer_ACK,"ACK")==0){
-            printf("rudp_connect success!\n");
-        }
-        else{
-            printf("rudp_connect failed\n");
-		    return -1;
-        }
-    }
+    // else if(rudpConnect == 1){
+    //     char* buffer_ACK;
+    //     recvfrom(rudpSocket->socket_fd, buffer_ACK, BUFFER_SIZE, 0, NULL, NULL);
+    //     printf("test\n");
+    //     if(strcmp(buffer_ACK,"ACK")==0){
+    //         rudpSocket->isConnected = true;
+    //         printf("rudp_connect success!\n");
+    //     }
+    //     else{
+    //         printf("rudp_connect failed\n");
+	// 	    return -1;
+    //     }
+    //     printf("test\n");
+    // }
 
     
 	while(1){

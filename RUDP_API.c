@@ -112,29 +112,63 @@ int rudp_connect(RUDP_Socket *sockfd, const char *dest_ip, unsigned short int de
         return 0;
     }
     sockfd->dest_addr = dest_addr;
-    sockfd->isConnected = true;
-    sendto(sockfd->socket_fd, "connection request", sizeof("connection request"), 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
+    //sockfd->isConnected = true;
+    // sendto(sockfd->socket_fd, "connection request", sizeof("connection request"), 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
+     const char* connectMessage = "connection request";
+    if (sendto(sockfd->socket_fd, connectMessage, strlen(connectMessage), 0, (struct sockaddr*)&sockfd->dest_addr, sizeof(sockfd->dest_addr)) == -1) {
+        perror("Error sending connection request");
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Connection request sent to the server\n");
+    
+    ssize_t recvBytes;
+
+    // Wait for acknowledgment from the server
+    recvBytes = recvfrom(sockfd->socket_fd, buffer, sizeof(buffer), 0, NULL, NULL);
+    if (recvBytes == -1) {
+        perror("Error receiving acknowledgment");
+        exit(EXIT_FAILURE);
+    }
+
     return 1;
 }
 
 int rudp_accept(RUDP_Socket *sockfd){
+    // char* buffer;
+    // if (sockfd == NULL) { // There is no open socket
+    //     fprintf(stderr, "Invalid RUDP socket\n");
+    //     return 0;
+    // }
+
+    // if (!sockfd->isServer) { // The socket is connected/set to client
+    //     fprintf(stderr, "Cannot accept on client-side socket\n");
+    //     return 0;
+    // }
+    // else if(recvfrom(sockfd->socket_fd, buffer, BUFFER_SIZE, 0, NULL, NULL)!=-1){
+    //     if(strcmp(buffer,"connection request")==0){
+    //         sendto(sockfd->socket_fd, "ACK", sizeof("ACK"), 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
+    //         printf("connection request recieved, sending ACK");
+    //     }
+    // }
     char* buffer;
-    if (sockfd == NULL) { // There is no open socket
-        fprintf(stderr, "Invalid RUDP socket\n");
-        return 0;
+    socklen_t addrSize = sizeof(struct sockaddr_in);
+    ssize_t recvBytes = recvfrom(sockfd->socket_fd, buffer, sizeof(buffer), 0, (struct sockaddr*)&sockfd->dest_addr, &addrSize);
+    if (recvBytes == -1) {
+        perror("Error receiving connection request");
+        exit(EXIT_FAILURE);
     }
 
-    if (!sockfd->isServer) { // The socket is connected/set to client
-        fprintf(stderr, "Cannot accept on client-side socket\n");
-        return 0;
-    }
-    else if(recvfrom(sockfd->socket_fd, buffer, BUFFER_SIZE, 0, NULL, NULL)!=-1){
-        if(strcmp(buffer,"connection request")==0){
-            sendto(sockfd->socket_fd, "ACK", sizeof("ACK"), 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
-            printf("connection request recieved, sending ACK");
-        }
-    }
+    buffer[recvBytes] = '\0';
+    printf("Received connection request from client: %s\n", buffer);
 
+    // Send acknowledgment to the client
+    const char* ackMessage = "ACK";
+    if (sendto(sockfd->socket_fd, ackMessage, strlen(ackMessage), 0, (struct sockaddr*)&sockfd->dest_addr, sizeof(sockfd->dest_addr)) == -1) {
+        perror("Error sending acknowledgment");
+        exit(EXIT_FAILURE);
+    }
+    sockfd->isConnected = true;
     return 1; // rudp_accept() successeded
 }
 
@@ -145,7 +179,7 @@ int rudp_recv(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
     }
 
     if (!sockfd->isConnected) {
-        fprintf(stderr, "Socket is not connected\n");
+        perror("Socket is not connected");
         return 0;
     }
 

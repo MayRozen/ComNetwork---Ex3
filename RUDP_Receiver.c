@@ -13,15 +13,18 @@
 #include "RUDP_API.h"
 #include "RUDP_API.c"
 
-#define SERVER_PORT 5060
 #define BUFFER_SIZE 2*1024*1024
 
 
-int main()
-{
+int main(int argc, char *argv[]){
     printf("start reciever\n");
+    if (argc != 2) {//if the user didn't send all the arguments 
+        fprintf(stderr, "Usage: %s <congestion_algorithm>\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+    const int port = atoi(argv[1]);
 	signal(SIGPIPE, SIG_IGN); // prevent crash on closing socket
-    RUDP_Socket *sockfd = rudp_socket(true,SERVER_PORT);
+    RUDP_Socket *sockfd = rudp_socket(true,port);
     char receive_buff[BUFFER_SIZE], send_buff[BUFFER_SIZE];
     struct sockaddr_in sender;
     int sender_size;
@@ -36,7 +39,7 @@ int main()
 	struct sockaddr_in RUDPreceiverAddress;
 	memset((char *)&RUDPreceiverAddress, 0, sizeof(RUDPreceiverAddress));
 	RUDPreceiverAddress.sin_family = AF_INET;
-	RUDPreceiverAddress.sin_port = htons(SERVER_PORT);
+	RUDPreceiverAddress.sin_port = htons(port);
       
     // Accept and incoming connection
     printf("Waiting for incoming RUDP-connections...\n");
@@ -59,7 +62,7 @@ int main()
             rudp_close(sockfd);
             return -1;
     	}
-        sockfd->isConnected = true;
+        //sockfd->isConnected = true;
 		ssize_t bytes_read = BUFFER_SIZE;
         size_t total_bytes_sent = 0;
         gettimeofday(&start_time, NULL);
