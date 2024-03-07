@@ -12,6 +12,7 @@
 #include <sys/time.h> 
 
 #define BUFFER_SIZE 1024
+
   
 int main(int argc,char *argv[])
 {
@@ -96,17 +97,17 @@ int main(int argc,char *argv[])
     size_t total_bytes_sent = 0;
     ssize_t random_data;
     do {
-        random_data = recv(senderSocket, receive_buff, BUFFER_SIZE, 0);
+        random_data = recv(senderSocket, receive_buff, bytes_read, 0);
 
         //ssize_t bytes_sent = send(senderSocket, &random_data, bytes_read, 0);
-        ssize_t bytes_sent = send(senderSocket, receive_buff, random_data, 0);
+        ssize_t bytes_sent = send(senderSocket, receive_buff, random_data/2, 0);
         if (bytes_sent == 0) {
             perror("send() failed");
             close(senderSocket);
             return -1;
         }
-        printf("File trasfer completed.\n");
-        printf("Waiting for Sender response...\n");
+        // printf("File trasfer completed.\n");
+        // printf("Waiting for Sender response...\n");
 
         // Check if the received message is an exit message
         if (strncmp(receive_buff, "EXIT", 4) == 0) {

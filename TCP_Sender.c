@@ -91,18 +91,16 @@ int main(int argc,char *argv[]){
     char ip4[INET_ADDRSTRLEN] = {0}; // Sends the file to Receiver
     inet_ntop(AF_INET, &(receiverAddress.sin_addr), ip4, INET_ADDRSTRLEN);
     printf("The IPv4 address is: %s\n", ip4);
-    
-    int bytesSent;
-    do {
-        bytesSent = send(sock, random_data, size2, 0);  // Use size2 instead of sizeof(random_data)
-        printf("bytes sent is: %d\n", bytesSent);
+
+    int bytesSent = send(sock, random_data, size2, 0);// Use size2 instead of sizeof(random_data)
         if (bytesSent == -1) {
             perror("send() failed\n");
             free(random_data);
             close(sock);
             return -1;
         }
-
+    
+    do {
         printf("Do you want to send the file again? y/n\n");
         char c;
             do {
@@ -113,6 +111,15 @@ int main(int argc,char *argv[]){
                 send(sock, "EXIT", sizeof(char*), 0);
                 break;
             }
+            
+        bytesSent = send(sock, random_data, size2/2, 0);// Use size2 instead of sizeof(random_data)
+        if (bytesSent == -1) {
+            perror("send() failed\n");
+            free(random_data);
+            close(sock);
+            return -1;
+        }
+        printf("send successed\n");
     } while (size2 > 0);
 
     if(-1 == bytesSent){
