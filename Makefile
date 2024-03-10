@@ -1,50 +1,58 @@
 # ----------------- Makefile for TCP ---------------------
 
-all: TCP_Receiver TCP_Sender
+# all: TCP_Receiver TCP_Sender
 
-TCP_Receiver: TCP_Receiver.c
-	gcc -o TCP_Receiver TCP_Receiver.c
+# TCP_Receiver: TCP_Receiver.c
+# 	gcc -o TCP_Receiver TCP_Receiver.c
 
-TCP_Sender: TCP_Sender.c
-	gcc -o TCP_Sender TCP_Sender.c
+# TCP_Sender: TCP_Sender.c
+# 	gcc -o TCP_Sender TCP_Sender.c
 
-clean:
-	rm -f *.o TCP_Receiver TCP_Sender
+# clean:
+# 	rm -f *.o TCP_Receiver TCP_Sender
 
-runs:
-	./TCP_Receiver -pPORT -algoALGO
+# runs:
+# 	./TCP_Receiver -pPORT -algoALGO
 
-runc:
-	./TCP_Sender -ipIP -pPORT -algoALGO
+# runc:
+# 	./TCP_Sender -ipIP -pPORT -algoALGO
 
-runs-strace:
-	strace -f ./TCP_Receiver 
+# runs-strace:
+# 	strace -f ./TCP_Receiver 
 
-runc-strace:
-	strace -f ./TCP_Sender
+# runc-strace:
+# 	strace -f ./TCP_Sender
 
 
 # ----------------- Makefile for RUDP ---------------------
 
-# all: RUDP_Receiver RUDP_Sender
+all: RUDP_Receiver RUDP_Sender 
+# RUDP_API
 
-# RUDP_Receiver: RUDP_Receiver.c
-# 	gcc -o RUDP_Receiver RUDP_Receiver.c
+RUDP_Receiver: RUDP_Receiver.c
+	gcc -o RUDP_Receiver RUDP_Receiver.c
 
-# RUDP_Sender: RUDP_Sender.c
-# 	gcc -o RUDP_Sender RUDP_Sender.c
+RUDP_Sender: RUDP_Sender.c
+	gcc -o RUDP_Sender RUDP_Sender.c
 
-# clean:
-# 	rm -f *.o RUDP_Receiver RUDP_Sender
+# RUDP_API: RUDP_API.c
+# 	gcc -o RUDP_API RUDP_API.c
 
-# runs:
-# 	./RUDP_Receiver -pPORT
+clean:
+	rm -f *.o RUDP_Receiver RUDP_Sender 
+# RUDP_API
 
-# runc:
-# 	./RUDP_Sender -ipIP -pPORT
+runs:
+	./RUDP_Receiver -pPORT
 
-# runs-strace:
-# 	strace -f ./RUDP_Receiver
+runc:
+	./RUDP_Sender -ipIP -pPORT
 
-# runc-strace:
-# 	strace -f ./RUDP_Sender
+# runs-api:
+# 	./RUDP_API
+
+runs-strace:
+	strace -f ./RUDP_Receiver
+
+runc-strace:
+	strace -f ./RUDP_Sender
