@@ -11,7 +11,6 @@
 #include <sys/time.h> 
 
 #include "RUDP_API.h"
-#include "RUDP_API.c"
 
 #define BUFFER_SIZE 2*1024*1024
 
