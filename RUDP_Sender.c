@@ -1,4 +1,4 @@
-#include "stdio.h"
+#include <stdio.h>
 #include <stdlib.h> 
 #include <errno.h> 
 #include <string.h> 
@@ -11,7 +11,7 @@
 #include <time.h>
 
 #include "RUDP_API.h"
-#include "RUDP_API.c"
+#define BUFFER_SIZE 2*1024*1024
 
 char *util_generate_random_data(unsigned int size){
     char *buffer;
@@ -40,7 +40,7 @@ int main(int argc, char *argv[]){
     }
     // Create socket
     
-    const int port = atoi(argv[1]);
+    unsigned short int port = atoi(argv[1]);
     const char *server_ip = argv[2];
 	RUDP_Socket* rudpSocket = rudp_socket(false,port);
     unsigned int size2 = 2*1024*1024;
@@ -62,24 +62,9 @@ int main(int argc, char *argv[]){
 		printf("rudp_connect failed\n");
 		return -1;
 	}           
-    // else if(rudpConnect == 1){
-    //     char* buffer_ACK;
-    //     recvfrom(rudpSocket->socket_fd, buffer_ACK, BUFFER_SIZE, 0, NULL, NULL);
-    //     printf("test\n");
-    //     if(strcmp(buffer_ACK,"ACK")==0){
-    //         rudpSocket->isConnected = true;
-    //         printf("rudp_connect success!\n");
-    //     }
-    //     else{
-    //         printf("rudp_connect failed\n");
-	// 	    return -1;
-    //     }
-    //     printf("test\n");
-    // }
-
     
 	while(1){
-        char* tmpbuffer;
+        char tmpbuffer[BUFFER_SIZE];
         
         //send the message
         int rudpSend = rudp_Send(rudpSocket,random_data,size2);
@@ -103,8 +88,6 @@ int main(int argc, char *argv[]){
     }
 
 	struct sockaddr_in fromAddress;
-	//Change type variable from int to socklen_t: int fromAddressSize = sizeof(fromAddress);
-	socklen_t fromAddressSize = sizeof(fromAddress);
 
 	memset((char *)&fromAddress, 0, sizeof(fromAddress));
 
