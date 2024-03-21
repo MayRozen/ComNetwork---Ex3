@@ -25,31 +25,39 @@
 
 
 # ----------------- Makefile for RUDP ---------------------
+CC = gcc
+AR = ar
+AFLAFS = rcs
+CFLAGS = -Wall -g
 
 all: RUDP_Receiver RUDP_Sender 
-# RUDP_API
 
-RUDP_Receiver: RUDP_Receiver.c
-	gcc -o RUDP_Receiver RUDP_Receiver.c
+RUDP_Receiver: RUDP_Receiver.o RUDP_API.a
+	$(CC) $(CFLAGS) $^ -o $@
 
-RUDP_Sender: RUDP_Sender.c
-	gcc -o RUDP_Sender RUDP_Sender.c
+RUDP_Receiver.o: RUDP_Receiver.c RUDP_API.h
+	$(CC) $(CFLAGS) -c RUDP_Receiver.c
 
-# RUDP_API: RUDP_API.c
-# 	gcc -o RUDP_API RUDP_API.c
+RUDP_Sender: RUDP_Sender.o RUDP_API.a
+	$(CC) $(CFLAGS) $^ -o $@
+
+RUDP_Sender.o: RUDP_Sender.c RUDP_API.h
+	$(CC) $(CFLAGS) -c RUDP_Sender.c
+
+RUDP_API.a: RUDP_API.o
+	$(AR) $(AFLAFS) RUDP_API.a RUDP_API.o
+
+RUDP_API.o: RUDP_API.c RUDP_API.h
+	$(CC) $(CFLAGS) -c RUDP_API.c
 
 clean:
 	rm -f *.o RUDP_Receiver RUDP_Sender 
-# RUDP_API
 
 runs:
 	./RUDP_Receiver -pPORT
 
 runc:
 	./RUDP_Sender -ipIP -pPORT
-
-# runs-api:
-# 	./RUDP_API
 
 runs-strace:
 	strace -f ./RUDP_Receiver
