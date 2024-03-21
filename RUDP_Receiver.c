@@ -1,4 +1,4 @@
-#include "stdio.h"
+#include <stdio.h>
 #include <stdlib.h> 
 #include <errno.h> 
 #include <string.h> 
@@ -21,12 +21,12 @@ int main(int argc, char *argv[]){
         fprintf(stderr, "Usage: %s <congestion_algorithm>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
-    const int port = atoi(argv[1]);
+    unsigned short int port = atoi(argv[1]);
 	signal(SIGPIPE, SIG_IGN); // prevent crash on closing socket
     RUDP_Socket *sockfd = rudp_socket(true,port);
-    char receive_buff[BUFFER_SIZE], send_buff[BUFFER_SIZE];
+    char receive_buff[BUFFER_SIZE];
     struct sockaddr_in sender;
-    int sender_size;
+    socklen_t sender_size;
 	struct timeval start_time, end_time;
     size_t total_file_size = 0; // Total file size
     double total_time_taken = 0; // Total time taken 
@@ -45,16 +45,13 @@ int main(int argc, char *argv[]){
 
 	// setup Sender address structure
 	struct sockaddr_in RUDPsenderAddress;
-	socklen_t RUDPsenderAddressLen = sizeof(RUDPsenderAddress);
 
 	memset((char *)&RUDPsenderAddress, 0, sizeof(RUDPsenderAddress));
 	//keep listening for data
 	while (1)
 	{
-		char* buffer;
 		// zero Sender address 
 		memset((char *)&RUDPsenderAddress, 0, sizeof(RUDPsenderAddress));
-		RUDPsenderAddressLen = sizeof(RUDPsenderAddress);
 		int senderSocket = rudp_accept(sockfd);
     	if (senderSocket == 0){
             printf("listen failed with error code");
@@ -62,12 +59,12 @@ int main(int argc, char *argv[]){
             return -1;
     	}
         //sockfd->isConnected = true;
-		ssize_t bytes_read = BUFFER_SIZE;
+		unsigned int bytes_read = BUFFER_SIZE;
         size_t total_bytes_sent = 0;
         gettimeofday(&start_time, NULL);
         do {
             int random_data = rudp_recv(sockfd, receive_buff, BUFFER_SIZE);
-            ssize_t bytes_sent = rudp_Send(sockfd, &random_data, bytes_read);
+            int bytes_sent = rudp_Send(sockfd, &random_data, bytes_read);
             printf("bytes sent is: %d\n", random_data);
             if (bytes_sent == -1) {
                 perror("send() failed\n");
@@ -111,8 +108,8 @@ int main(int argc, char *argv[]){
 
         printf("Listening...\n");
         memset(receive_buff, 0, sizeof(receive_buff));
-        sender_size = sizeof(sender);
-        if (recvfrom(sockfd->socket_fd, (void*)receive_buff, sizeof(receive_buff), 0, (struct sockaddr*) &sender, &sender_size) < 0) {
+        sender_size = sizeof(struct sockaddr_in);
+        if (recvfrom(sockfd->socket_fd, receive_buff, sizeof(receive_buff), 0,(struct sockaddr *)&sender, &sender_size) < 0) {
             perror("failed to receive broadcast message");
             break;
             //return -1;
