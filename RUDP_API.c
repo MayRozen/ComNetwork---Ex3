@@ -92,10 +92,8 @@ RUDP_Socket* rudp_socket(bool isServer, unsigned short int listen_port){
 int rudp_connect(RUDP_Socket *sockfd, const char *dest_ip, unsigned short int dest_port){
     char buffer[BUFFER_SIZE];
     if (sockfd == NULL) { // There is no open socket
-        //if(connect(sockfd->socket_fd, dest_ip, dest_port)==-1){
-            fprintf(stderr, "Invalid RUDP socket\n");
-            return 0;
-       // }
+        fprintf(stderr, "Invalid RUDP socket\n");
+        return 0;
     }
 
     if (sockfd->isServer) { // The socket is connected/set to server
@@ -114,9 +112,7 @@ int rudp_connect(RUDP_Socket *sockfd, const char *dest_ip, unsigned short int de
         return 0;
     }
     sockfd->dest_addr = dest_addr;
-    //sockfd->isConnected = true;
-    // sendto(sockfd->socket_fd, "connection request", sizeof("connection request"), 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
-     const char* connectMessage = "connection request";
+    const char* connectMessage = "connection request";
     if (sendto(sockfd->socket_fd, connectMessage, strlen(connectMessage), 0, (struct sockaddr*)&sockfd->dest_addr, sizeof(sockfd->dest_addr)) == -1) {
         perror("Error sending connection request");
         exit(EXIT_FAILURE);
@@ -155,18 +151,19 @@ int rudp_accept(RUDP_Socket *sockfd){
         exit(EXIT_FAILURE);
     }
     sockfd->isConnected = true;
+    printf("rudp_accept() successeded\n");
     return 1; // rudp_accept() successeded
 }
 
 int rudp_recv(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
     if (sockfd == NULL) {
         fprintf(stderr, "Invalid RUDP socket\n");
-        return -1;
+        return 0;
     }
 
     if (!sockfd->isConnected) {
         perror("Socket is not connected\n");
-        return 0;
+        return -1;
     }
 
     ssize_t recv_len = recvfrom(sockfd->socket_fd, buffer, buffer_size, 0, NULL, NULL);
@@ -187,6 +184,7 @@ int rudp_recv(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
         printf("sending ACK\n");
         sendto(sockfd->socket_fd, "ACK", sizeof("ACK"), 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
     }
+    printf("%zd\n", recv_len);
     return recv_len;
 }
 
@@ -195,14 +193,14 @@ int rudp_Send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
         fprintf(stderr, "Invalid RUDP socket\n");
         free(buffer);
         close(sockfd->socket_fd);
-        return -1;
+        return 0;
     }
 
     if (!sockfd->isConnected){
         fprintf(stderr, "Socket is not connected\n");
         free(buffer);
         close(sockfd->socket_fd);
-        return 0;
+        return -1;
     }
 
     ssize_t sent_total = 0;
@@ -210,8 +208,10 @@ int rudp_Send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
     char *buffer_ptr = (char *)buffer;
 
     while (remaining > 0) {
-        ssize_t chunk_size = remaining > MAX_UDP_PAYLOAD_SIZE ? MAX_UDP_PAYLOAD_SIZE : remaining;
-        ssize_t sent_len = sendto(sockfd->socket_fd, buffer_ptr, chunk_size, 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
+        //ssize_t chunk_size = remaining > MAX_UDP_PAYLOAD_SIZE ? MAX_UDP_PAYLOAD_SIZE : remaining;
+        //-----------------------------------------------Here there is a problem!!!-------------------------------------------------
+        //sent_len=-1 -> bytes_sent =-1 and it kills our program.
+        ssize_t sent_len = sendto(sockfd->socket_fd, "ACK", sizeof("ACK"), 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
         if (sent_len == -1) {
             perror("sendto() failed");
             return -1;  // Handle the error appropriately
