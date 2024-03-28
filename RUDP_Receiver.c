@@ -58,13 +58,15 @@ int main(int argc, char *argv[]){
             rudp_close(sockfd);
             return -1;
     	}
-        //sockfd->isConnected = true;
+
 		unsigned int bytes_read = BUFFER_SIZE;
         size_t total_bytes_sent = 0;
         gettimeofday(&start_time, NULL);
         do {
             int random_data = rudp_recv(sockfd, receive_buff, BUFFER_SIZE);
-            int bytes_sent = rudp_Send(sockfd, &random_data, bytes_read);
+            //-----------------------------------------------Here there is a problem!!!-------------------------------------------------
+            //bytes_sent =-1 and it kills our program.
+            int bytes_sent = rudp_Send(sockfd, &random_data, bytes_read); 
             printf("bytes sent is: %d\n", random_data);
             if (bytes_sent == -1) {
                 perror("send() failed\n");
