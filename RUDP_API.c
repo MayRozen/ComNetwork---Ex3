@@ -12,6 +12,7 @@
 #include "RUDP_API.h"
 #define MAX_UDP 1472
 #define BUFFER_SIZE 2*1024*1024
+#define MAX_UDP_PAYLOAD_SIZE 65507 // Maximum UDP payload size
 /*
 * @brief A checksum function that returns 16 bit checksum for data.
 * @param data The data to do the checksum for.
@@ -106,8 +107,9 @@ int rudp_connect(RUDP_Socket *sockfd, const char *dest_ip, unsigned short int de
     memset(&sockfd->dest_addr, 0, sizeof(sockfd->dest_addr));
     dest_addr.sin_family = AF_INET; // IPv4
     dest_addr.sin_port = htons(dest_port);
+
     // inet_pton() converts IP addresses from their textual form to their binary form
-    if (inet_pton(AF_INET, dest_ip, &dest_addr.sin_addr) <= 0) { // The socket is already connect
+    if (inet_pton(AF_INET, dest_ip, &sockfd->dest_addr.sin_addr) <= 0) { // The socket is already connect
         perror("Invalid address");
         return 0;
     }
@@ -130,27 +132,12 @@ int rudp_connect(RUDP_Socket *sockfd, const char *dest_ip, unsigned short int de
         perror("Error receiving acknowledgment");
         exit(EXIT_FAILURE);
     }
-
+    sockfd->isConnected = true;
     return 1;
 }
 
 int rudp_accept(RUDP_Socket *sockfd){
     char buffer[BUFFER_SIZE];
-    // if (sockfd == NULL) { // There is no open socket
-    //     fprintf(stderr, "Invalid RUDP socket\n");
-    //     return 0;
-    // }
-
-    // if (!sockfd->isServer) { // The socket is connected/set to client
-    //     fprintf(stderr, "Cannot accept on client-side socket\n");
-    //     return 0;
-    // }
-    // else if(recvfrom(sockfd->socket_fd, buffer, BUFFER_SIZE, 0, NULL, NULL)!=-1){
-    //     if(strcmp(buffer,"connection request")==0){
-    //         sendto(sockfd->socket_fd, "ACK", sizeof("ACK"), 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
-    //         printf("connection request recieved, sending ACK");
-    //     }
-    // }
     socklen_t addrSize = sizeof(struct sockaddr_in);
     ssize_t recvBytes = recvfrom(sockfd->socket_fd, buffer, sizeof(buffer), 0, (struct sockaddr*)&sockfd->dest_addr, &addrSize);
     if (recvBytes == -1) {
@@ -178,7 +165,7 @@ int rudp_recv(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
     }
 
     if (!sockfd->isConnected) {
-        perror("Socket is not connected");
+        perror("Socket is not connected\n");
         return 0;
     }
 
@@ -223,7 +210,8 @@ int rudp_Send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
     char *buffer_ptr = (char *)buffer;
 
     while (remaining > 0) {
-        ssize_t sent_len = sendto(sockfd->socket_fd, buffer_ptr, remaining, 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
+        ssize_t chunk_size = remaining > MAX_UDP_PAYLOAD_SIZE ? MAX_UDP_PAYLOAD_SIZE : remaining;
+        ssize_t sent_len = sendto(sockfd->socket_fd, buffer_ptr, chunk_size, 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
         if (sent_len == -1) {
             perror("sendto() failed");
             return -1;  // Handle the error appropriately
@@ -231,7 +219,7 @@ int rudp_Send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
 
         sent_total += sent_len;
         remaining -= sent_len;
-        buffer_ptr += sent_len;
+        buffer_ptr += sent_total;
     }
 
     return sent_total;
