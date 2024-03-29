@@ -64,8 +64,6 @@ int main(int argc, char *argv[]){
         gettimeofday(&start_time, NULL);
         do {
             int random_data = rudp_recv(sockfd, receive_buff, BUFFER_SIZE);
-            //-----------------------------------------------Here there is a problem!!!-------------------------------------------------
-            //bytes_sent =-1 and it kills our program.
             int bytes_sent = rudp_Send(sockfd, &random_data, bytes_read); 
             printf("bytes sent is: %d\n", random_data);
             if (bytes_sent == -1) {
@@ -75,6 +73,7 @@ int main(int argc, char *argv[]){
             }
 
             // Check if the received message is an exit message
+            ///-----------------------------------------Here the problem!!!---------------
             if (strncmp(receive_buff, "EXIT", 4) == 0) {
                 printf("Received exit message from sender\n");
                 rudp_disconnect(sockfd);
@@ -114,14 +113,12 @@ int main(int argc, char *argv[]){
         if (recvfrom(sockfd->socket_fd, receive_buff, sizeof(receive_buff), 0,(struct sockaddr *)&sender, &sender_size) < 0) {
             perror("failed to receive broadcast message");
             break;
-            //return -1;
         }
         printf("%s\n", receive_buff);
       
     	printf("A new sender connection accepted\n");
     }
 	
-
 	rudp_close(sockfd);
 	printf("RUDP_Receiver end\n");
 	return 0;
