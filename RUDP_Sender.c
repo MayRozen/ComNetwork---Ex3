@@ -75,11 +75,12 @@ int main(int argc, char *argv[]){
         }
         rudp_recv(rudpSocket, tmpbuffer, sizeof(tmpbuffer));
         if (strcmp(tmpbuffer,"ACK") != 0){
-            // Acknowledgment received, break the loop
+            //Acknowledgment received, break the loop
             break;
         } 
         printf("Send the file again? y/n\n");
         char c = getchar();
+        ///-----------------------------------------Here the problem!!!---------------
         if(c == 'n'){
             rudp_Send(rudpSocket,"EXIT",4);
             break;
