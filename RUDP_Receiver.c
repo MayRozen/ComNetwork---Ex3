@@ -63,11 +63,10 @@ int main(int argc, char *argv[]){
         size_t total_bytes_sent = 0;
         gettimeofday(&start_time, NULL);
         do {
-            int random_data = rudp_recv(sockfd, receive_buff, BUFFER_SIZE);
-            int bytes_sent = rudp_Send(sockfd, &random_data, bytes_read); 
-            printf("bytes sent is: %d\n", random_data);
-            if (bytes_sent == -1) {
-                perror("send() failed\n");
+            int random_data = rudp_recv(sockfd, receive_buff, bytes_read);
+            int bytes_sent = rudp_Send(sockfd, receive_buff, random_data/2); 
+            if (bytes_sent <= 0) {
+                perror("send() failed");
                 close(senderSocket);
                 return -1;
             }

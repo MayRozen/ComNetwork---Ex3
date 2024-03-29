@@ -82,7 +82,7 @@ int main(int argc, char *argv[]){
         char c = getchar();
         ///-----------------------------------------Here the problem!!!---------------
         if(c == 'n'){
-            rudp_Send(rudpSocket,"EXIT",4);
+            rudp_Send(rudpSocket,"EXIT",sizeof("EXIT"));
             break;
         }
         usleep(100);

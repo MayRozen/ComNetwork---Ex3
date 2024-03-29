@@ -158,7 +158,7 @@ int rudp_accept(RUDP_Socket *sockfd){
 int rudp_recv(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
     if (sockfd == NULL) {
         fprintf(stderr, "Invalid RUDP socket\n");
-        return 0;
+        return -1;
     }
 
     if (!sockfd->isConnected) {
@@ -172,19 +172,17 @@ int rudp_recv(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
         return -1;
     }
 
-    unsigned int rudp_recv_checksum = calculate_checksum(buffer, buffer_size);
-    if(rudp_recv_checksum == buffer_size){
-        printf("The data received intactly. \n");
-    }
     if(sockfd->isServer){
+        unsigned int rudp_recv_checksum = calculate_checksum(buffer, buffer_size);
+        if(rudp_recv_checksum == buffer_size){
+            printf("The data received intactly. \n");
+        }
         if(strcmp(buffer,"EXIT") == 0){
             printf("sender sent exit message");
-            return recv_len; 
+            return 0; 
         }
-        printf("sending ACK\n");
         sendto(sockfd->socket_fd, "ACK", sizeof("ACK"), 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
     }
-    printf("%zd\n", recv_len);
     return recv_len;
 }
 
@@ -211,7 +209,7 @@ int rudp_Send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
         //ssize_t chunk_size = remaining > MAX_UDP_PAYLOAD_SIZE ? MAX_UDP_PAYLOAD_SIZE : remaining;
         //-----------------------------------------------Here there is a problem!!!-------------------------------------------------
         //sent_len=-1 -> bytes_sent =-1 and it kills our program.
-        ssize_t sent_len = sendto(sockfd->socket_fd, "ACK", sizeof("ACK"), 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
+        ssize_t sent_len = sendto(sockfd->socket_fd, buffer, sizeof(buffer), 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
         if (sent_len == -1) {
             perror("sendto() failed");
             return -1;  // Handle the error appropriately
@@ -230,6 +228,7 @@ int rudp_disconnect(RUDP_Socket *sockfd){
        // printf("you are alredy discinnected");
         return 0;
     }
+    send(sockfd->socket_fd, "EXIT", sizeof(char*), 0);
     sockfd->isConnected = false;
     return 1;
 }
