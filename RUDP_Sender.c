@@ -63,12 +63,12 @@ int main(int argc, char *argv[]){
 		return -1;
 	}           
     
+    int byteSent = 0;
 	while(1){
         char tmpbuffer[BUFFER_SIZE];
-        
         //send the message
-        int rudpSend = rudp_Send(rudpSocket,random_data,size2);
-        if(rudpSend<=0){
+        byteSent = rudp_Send(rudpSocket,random_data,size2);
+        if(byteSent<=0){
             free(random_data);
             close(rudpSocket->socket_fd);
             return -1;
@@ -87,6 +87,7 @@ int main(int argc, char *argv[]){
         }
         usleep(100);
     }
+    printf("the total byte sent is %d\n",byteSent);
 
 	struct sockaddr_in fromAddress;
 

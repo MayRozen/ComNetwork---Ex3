@@ -175,10 +175,11 @@ int rudp_recv(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
     if(sockfd->isServer){
         unsigned int rudp_recv_checksum = calculate_checksum(buffer, buffer_size);
         if(rudp_recv_checksum == buffer_size){
-            printf("The data received intactly. \n");
+            printf("The data received isn't intactly");
+            return -1;
         }
         if(strcmp(buffer,"EXIT") == 0){
-            printf("sender sent exit message");
+            printf("sender sent exit message\n");
             return 0; 
         }
         sendto(sockfd->socket_fd, "ACK", sizeof("ACK"), 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
@@ -191,7 +192,7 @@ int rudp_Send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
         fprintf(stderr, "Invalid RUDP socket\n");
         free(buffer);
         close(sockfd->socket_fd);
-        return 0;
+        return -1;
     }
 
     if (!sockfd->isConnected){

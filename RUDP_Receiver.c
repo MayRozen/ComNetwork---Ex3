@@ -64,10 +64,10 @@ int main(int argc, char *argv[]){
         gettimeofday(&start_time, NULL);
         do {
             int random_data = rudp_recv(sockfd, receive_buff, bytes_read);
-            int bytes_sent = rudp_Send(sockfd, receive_buff, random_data/2); 
-            if (bytes_sent <= 0) {
+            int bytes_sent = rudp_Send(sockfd, receive_buff, random_data/2);
+            if (bytes_sent < 0) {
                 perror("send() failed");
-                close(senderSocket);
+                rudp_close(sockfd);
                 return -1;
             }
 
@@ -83,9 +83,9 @@ int main(int argc, char *argv[]){
         } while (bytes_read > 0);
         printf("the total bytes sent is: %zu\n", total_bytes_sent);
         if(total_bytes_sent < 2 * 1024 * 1024){ // Checking if the file is at least 2MB
-            perror("The file's size is smaller than expected");
+            printf("The file's size is smaller than expected\n");
             close(senderSocket);
-            close(sockfd->socket_fd);
+            rudp_close(sockfd);
             return -1;
         }
 
