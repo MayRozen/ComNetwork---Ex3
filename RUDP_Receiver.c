@@ -72,7 +72,6 @@ int main(int argc, char *argv[]){
             }
 
             // Check if the received message is an exit message
-            ///-----------------------------------------Here the problem!!!---------------
             if (strncmp(receive_buff, "EXIT", 4) == 0) {
                 printf("Received exit message from sender\n");
                 rudp_disconnect(sockfd);
