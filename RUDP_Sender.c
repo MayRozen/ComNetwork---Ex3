@@ -63,31 +63,35 @@ int main(int argc, char *argv[]){
 		return -1;
 	}           
     
-    int byteSent = 0;
+    // int byteSent = 0;
 	while(1){
         char tmpbuffer[BUFFER_SIZE];
         //send the message
-        byteSent = rudp_Send(rudpSocket,random_data,size2);
+        int byteSent = rudp_Send(rudpSocket,random_data,size2);
+        printf("the total byte sent is %d\n",byteSent);
         if(byteSent<=0){
             free(random_data);
             close(rudpSocket->socket_fd);
             return -1;
         }
-        rudp_recv(rudpSocket, tmpbuffer, sizeof(tmpbuffer));
-        if (strcmp(tmpbuffer,"ACK") != 0){
-            //Acknowledgment received, break the loop
+        rudp_recv(rudpSocket, tmpbuffer, sizeof(BUFFER_SIZE));
+        printf("The massage is: %c\n", *tmpbuffer);
+        if (strncmp(tmpbuffer, "ACK", sizeof("ACK")) > 0){ //Here!!!!!!!!!!!!
+            printf("Acknowledgment received, break the loop\n");
             break;
         } 
         printf("Send the file again? y/n\n");
         char c = getchar();
-        ///-----------------------------------------Here the problem!!!---------------
+        // Consume the newline character
+        getchar();
         if(c == 'n'){
-            rudp_Send(rudpSocket,"EXIT",sizeof("EXIT"));
+            rudp_Send(rudpSocket,"EXIT",strlen("EXIT"));
             break;
         }
-        usleep(100);
-    }
-    printf("the total byte sent is %d\n",byteSent);
+        else{ //'y' had chosen
+            continue;
+        }
+    } 
 
 	struct sockaddr_in fromAddress;
 
