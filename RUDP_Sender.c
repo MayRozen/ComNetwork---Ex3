@@ -76,7 +76,7 @@ int main(int argc, char *argv[]){
         }
         rudp_recv(rudpSocket, tmpbuffer, sizeof(BUFFER_SIZE));
         printf("The massage is: %c\n", *tmpbuffer);
-        if (strncmp(tmpbuffer, "ACK", sizeof("ACK")) > 0){ //Here!!!!!!!!!!!!
+        if (strncmp(tmpbuffer, "ACK", sizeof("ACK")) < 0){ //Here!!!!!!!!!!!!
             printf("Acknowledgment received, break the loop\n");
             break;
         } 
