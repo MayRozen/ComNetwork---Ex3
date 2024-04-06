@@ -192,7 +192,7 @@ int rudp_Send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
         fprintf(stderr, "Invalid RUDP socket\n");
         free(buffer);
         close(sockfd->socket_fd);
-        return -1;
+        return 0;
     }
 
     if (!sockfd->isConnected){
@@ -208,8 +208,6 @@ int rudp_Send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
 
     while (remaining > 0) {
         //ssize_t chunk_size = remaining > MAX_UDP_PAYLOAD_SIZE ? MAX_UDP_PAYLOAD_SIZE : remaining;
-        //-----------------------------------------------Here there is a problem!!!-------------------------------------------------
-        //sent_len=-1 -> bytes_sent =-1 and it kills our program.
         ssize_t sent_len = sendto(sockfd->socket_fd, buffer, sizeof(buffer), 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
         if (sent_len == -1) {
             perror("sendto() failed");
