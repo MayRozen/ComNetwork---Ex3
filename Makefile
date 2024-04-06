@@ -51,7 +51,7 @@ RUDP_API.o: RUDP_API.c RUDP_API.h
 	$(CC) $(CFLAGS) -c RUDP_API.c
 
 clean:
-	rm -f *.o RUDP_Receiver RUDP_Sender
+	rm -f *.o *.a RUDP_Receiver RUDP_Sender
 
 runs:
 	./RUDP_Receiver -pPORT
