@@ -44,7 +44,7 @@ int main(int argc, char *argv[]){
     const char *server_ip = argv[2];
 	RUDP_Socket* rudpSocket = rudp_socket(false,port);
     unsigned int size2 = 2*1024*1024;
-    char* random_data = util_generate_random_data(size2); //Our file  
+    char *random_data = util_generate_random_data(size2); //Our file  
     if(rudpSocket->socket_fd == -1){
         perror("failed to create socket\n"); //The socket uncreated
         return -1;
@@ -52,10 +52,7 @@ int main(int argc, char *argv[]){
 
 	// Setup the server address structure.
 	// Port and IP should be filled in network byte order
-    struct sockaddr_in RUDPreceiverAddress;
-	memset(&RUDPreceiverAddress, 0, sizeof(RUDPreceiverAddress));
-	RUDPreceiverAddress.sin_family = AF_INET;
-	RUDPreceiverAddress.sin_port = htons(port);
+    
 
 	int rudpConnect = rudp_connect(rudpSocket,server_ip,port);
 	if (rudpConnect <= 0){
@@ -64,7 +61,7 @@ int main(int argc, char *argv[]){
 	}           
     
     // int byteSent = 0;
-	while(1){
+	do{
         char tmpbuffer[BUFFER_SIZE];
         //send the message
         int byteSent = rudp_Send(rudpSocket,random_data,size2);
@@ -74,24 +71,26 @@ int main(int argc, char *argv[]){
             close(rudpSocket->socket_fd);
             return -1;
         }
-        rudp_recv(rudpSocket, tmpbuffer, sizeof(BUFFER_SIZE));
-        printf("The massage is: %c\n", *tmpbuffer);
+        rudp_recv(rudpSocket, tmpbuffer, sizeof(tmpbuffer));
+        //printf("The massage is: %c\n", *tmpbuffer);
         if (strncmp(tmpbuffer, "ACK", sizeof("ACK")) < 0){ //Here!!!!!!!!!!!!
-            printf("Acknowledgment received, break the loop\n");
-            break;
+            printf("Acknowledgment hasn't received, break the loop\n");
+            free(random_data);
+            close(rudpSocket->socket_fd);
+            return -1;
         } 
+        //rudp_recv(rudpSocket, tmpbuffer, sizeof(tmpbuffer));
         printf("Send the file again? y/n\n");
-        char c = getchar();
-        // Consume the newline character
-        getchar();
-        if(c == 'n'){
-            rudp_Send(rudpSocket,"EXIT",strlen("EXIT"));
+        char c;
+        do {
+            c = getchar();
+        } while (c != 'y' && c != 'n' && c != '\n');  // Clear input buffer
+
+        if (c == 'n') {
+            rudp_Send(rudpSocket,"EXIT",sizeof("EXIT"));
             break;
         }
-        else{ //'y' had chosen
-            continue;
-        }
-    } 
+    }while(size2 > 0); 
 
 	struct sockaddr_in fromAddress;
 

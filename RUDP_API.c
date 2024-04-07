@@ -174,7 +174,7 @@ int rudp_recv(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
 
     if(sockfd->isServer){
         unsigned int rudp_recv_checksum = calculate_checksum(buffer, buffer_size);
-        if(rudp_recv_checksum == buffer_size){
+        if(rudp_recv_checksum == buffer_size){//need fixing!!!!!!!!!!!!!!!!
             printf("The data received isn't intactly");
             return -1;
         }
@@ -184,6 +184,7 @@ int rudp_recv(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
         }
         sendto(sockfd->socket_fd, "ACK", sizeof("ACK"), 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
     }
+    printf("received %ld byte\n",recv_len);
     return recv_len;
 }
 
@@ -205,10 +206,9 @@ int rudp_Send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
     ssize_t sent_total = 0;
     ssize_t remaining = buffer_size;
     char *buffer_ptr = (char *)buffer;
-
     while (remaining > 0) {
-        //ssize_t chunk_size = remaining > MAX_UDP_PAYLOAD_SIZE ? MAX_UDP_PAYLOAD_SIZE : remaining;
-        ssize_t sent_len = sendto(sockfd->socket_fd, buffer, sizeof(buffer), 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
+        ssize_t chunk_size = remaining > MAX_UDP_PAYLOAD_SIZE ? MAX_UDP_PAYLOAD_SIZE : remaining;
+        ssize_t sent_len = sendto(sockfd->socket_fd, buffer, chunk_size, 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
         if (sent_len == -1) {
             perror("sendto() failed");
             return -1;  // Handle the error appropriately
@@ -218,7 +218,7 @@ int rudp_Send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
         remaining -= sent_len;
         buffer_ptr += sent_total;
     }
-
+    printf("total byte sent is %ld\n", sent_total);
     return sent_total;
 }
 

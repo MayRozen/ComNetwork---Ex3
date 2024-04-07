@@ -58,22 +58,22 @@ int main(int argc, char *argv[]){
             rudp_close(sockfd);
             return -1;
     	}
-
+        
 		unsigned int bytes_read = BUFFER_SIZE;
         size_t total_bytes_sent = 0;
+        int random_data;
         gettimeofday(&start_time, NULL);
         do {
-            int random_data = rudp_recv(sockfd, receive_buff, bytes_read);
-            int bytes_sent = rudp_Send(sockfd, receive_buff, random_data/2);
-            if (bytes_sent < 0) {
+            random_data = rudp_recv(sockfd, receive_buff, bytes_read);
+            int bytes_sent = rudp_Send(sockfd, receive_buff, random_data);
+            if (bytes_sent == -1) {
                 perror("send() failed");
                 rudp_close(sockfd);
                 return -1;
             }
 
             // Check if the received message is an exit message
-            if (strncmp(receive_buff, "EXIT", 4) == 0) {
-                printf("Received exit message from sender\n");
+            if (bytes_sent == 0) {
                 rudp_disconnect(sockfd);
                 break; // Exit the loop if the sender sends an exit message
             }
