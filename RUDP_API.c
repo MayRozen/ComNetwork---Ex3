@@ -25,24 +25,6 @@
 * @note You are free to use any other checksum function as well.
 * You can also use this function as such without any change.
 */
-unsigned short int calculate_checksum(void *data, unsigned int bytes) {
-    unsigned short int *data_pointer = (unsigned short int *)data;
-    unsigned int total_sum = 0;
-    // Main summing loop
-    while (bytes > 1) {
-        total_sum += *data_pointer++;
-        bytes -= 2;
-    }
-    // Add left-over byte, if any
-    if (bytes > 0){
-        total_sum += *((unsigned char *)data_pointer);
-    }
-    // Fold 32-bit sum to 16 bits
-    while (total_sum >> 16){
-        total_sum = (total_sum & 0xFFFF) + (total_sum >> 16);
-    }
-    return (~((unsigned short int)total_sum));
-}
 
 RUDP_Socket* rudp_socket(bool isServer, unsigned short int listen_port){
     RUDP_Socket *sockfd = (RUDP_Socket *)malloc(sizeof(RUDP_Socket));
@@ -173,16 +155,10 @@ int rudp_recv(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
     }
 
     if(sockfd->isServer){
-        unsigned int rudp_recv_checksum = calculate_checksum(buffer, buffer_size);
-        if(rudp_recv_checksum == buffer_size){//need fixing!!!!!!!!!!!!!!!!
-            printf("The data received isn't intactly");
-            return -1;
-        }
         if(strcmp(buffer,"EXIT") == 0){
             printf("sender sent exit message\n");
             return 0; 
         }
-        sendto(sockfd->socket_fd, "ACK", sizeof("ACK"), 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
     }
     printf("received %ld byte\n",recv_len);
     return recv_len;

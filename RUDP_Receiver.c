@@ -14,6 +14,24 @@
 
 #define BUFFER_SIZE 2*1024*1024
 
+unsigned short int calculate_checksum(void *data, unsigned int bytes) {
+    unsigned short int *data_pointer = (unsigned short int *)data;
+    unsigned int total_sum = 0;
+    // Main summing loop
+    while (bytes > 1) {
+        total_sum += *data_pointer++;
+        bytes -= 2;
+    }
+    // Add left-over byte, if any
+    if (bytes > 0){
+        total_sum += *((unsigned char *)data_pointer);
+    }
+    // Fold 32-bit sum to 16 bits
+    while (total_sum >> 16){
+        total_sum = (total_sum & 0xFFFF) + (total_sum >> 16);
+    }
+    return (~((unsigned short int)total_sum));
+}
 
 int main(int argc, char *argv[]){
     printf("start reciever\n");
@@ -62,6 +80,8 @@ int main(int argc, char *argv[]){
 		unsigned int bytes_read = BUFFER_SIZE;
         size_t total_bytes_sent = 0;
         int random_data;
+        char* header_checksum = 0;
+        int header_length = 0;
         gettimeofday(&start_time, NULL);
         do {
             random_data = rudp_recv(sockfd, receive_buff, bytes_read);
@@ -80,6 +100,26 @@ int main(int argc, char *argv[]){
             total_bytes_sent += random_data;
             
         } while (bytes_read > 0);
+        int sender_header = rudp_recv(sockfd, header_checksum, header_length);
+        if (sender_header == -1) {
+                perror("send() failed");
+                rudp_close(sockfd);
+                return -1;
+            }
+        int checksum = calculate_checksum(receive_buff,total_bytes_sent);
+        if(checksum != (int)*header_checksum){//need fixing!!!!!!!!!!!!!!!!
+            printf("The data received isn't intactly\n");
+            close(senderSocket);
+            rudp_close(sockfd);
+            return -1;
+        }
+        if(total_bytes_sent != header_length){
+            printf("The data hasn't received entirety\n");
+            close(senderSocket);
+            rudp_close(sockfd);
+            return -1;
+        }
+        rudp_Send(sockfd,"ACK",sizeof("ACK"));
         printf("the total bytes sent is: %zu\n", total_bytes_sent);
         if(total_bytes_sent < 2 * 1024 * 1024){ // Checking if the file is at least 2MB
             printf("The file's size is smaller than expected\n");

@@ -10,6 +10,14 @@ typedef struct _rudp_socket{
     struct sockaddr_in dest_addr; // Destination address. Client fills it when it connects via rudp_connect(), server fills it when it accepts a connection via rudp_accept().
 } RUDP_Socket;
 
+typedef struct rudp_header{
+        char flag;
+        int length;
+        int checksum;
+    }Header,*pHeader;
+    
+//char *util_generate_random_data(unsigned int size);
+
 // Allocates a new structure for the RUDP socket (contains basic information about the socket itself).
 // Also creates a UDP socket as a baseline for the RUDP. isServer means that this socket acts like a server. 
 // If set to server socket, it also binds the socket to a specific port.

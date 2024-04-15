@@ -13,22 +13,40 @@
 #include "RUDP_API.h"
 #define BUFFER_SIZE 2*1024*1024
 
-char *util_generate_random_data(unsigned int size){
-    char *buffer;
-    // Argument check.
-    if (size == 0){
-        return NULL;
+
+
+unsigned short int calculate_checksum(void *data, unsigned int bytes) {
+    unsigned short int *data_pointer = (unsigned short int *)data;
+    unsigned int total_sum = 0;
+    // Main summing loop
+    while (bytes > 1) {
+        total_sum += *data_pointer++;
+        bytes -= 2;
     }
+    // Add left-over byte, if any
+    if (bytes > 0){
+        total_sum += *((unsigned char *)data_pointer);
+    }
+    // Fold 32-bit sum to 16 bits
+    while (total_sum >> 16){
+        total_sum = (total_sum & 0xFFFF) + (total_sum >> 16);
+    }
+    return (~((unsigned short int)total_sum));
+}
+
+char *util_generate_random_data(unsigned int size) {
+    char *buffer = NULL;
+    // Argument check.
+    if (size == 0)
+        return NULL;
     buffer = (char *)calloc(size, sizeof(char));
     // Error checking.
-    if (buffer == NULL){
+    if (buffer == NULL)
         return NULL;
-    }
     // Randomize the seed of the random number generator.
     srand(time(NULL));
-    for (unsigned int i = 0; i < size; i++){
+    for (unsigned int i = 0; i < size; i++)
         *(buffer + i) = ((unsigned int)rand() % 256);
-    }
     return buffer;
 }
 
@@ -45,6 +63,10 @@ int main(int argc, char *argv[]){
 	RUDP_Socket* rudpSocket = rudp_socket(false,port);
     unsigned int size2 = 2*1024*1024;
     char *random_data = util_generate_random_data(size2); //Our file  
+    Header sender_header;
+    sender_header.checksum = calculate_checksum(random_data,size2);
+    sender_header.length = size2;
+    //check what the flag should be!!!!!!!!!!!!!!!!!! 
     if(rudpSocket->socket_fd == -1){
         perror("failed to create socket\n"); //The socket uncreated
         return -1;
@@ -65,8 +87,14 @@ int main(int argc, char *argv[]){
         char tmpbuffer[BUFFER_SIZE];
         //send the message
         int byteSent = rudp_Send(rudpSocket,random_data,size2);
+        int headerSent = rudp_Send(rudpSocket,(char*)sender_header.checksum,sender_header.length);
         printf("the total byte sent is %d\n",byteSent);
         if(byteSent<=0){
+            free(random_data);
+            close(rudpSocket->socket_fd);
+            return -1;
+        }
+        if(headerSent<=0){
             free(random_data);
             close(rudpSocket->socket_fd);
             return -1;
