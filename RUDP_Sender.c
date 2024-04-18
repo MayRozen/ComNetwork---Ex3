@@ -66,7 +66,7 @@ int main(int argc, char *argv[]){
     Header sender_header;
     sender_header.checksum = calculate_checksum(random_data,size2);
     sender_header.length = size2;
-    //check what the flag should be!!!!!!!!!!!!!!!!!! 
+
     if(rudpSocket->socket_fd == -1){
         perror("failed to create socket\n"); //The socket uncreated
         return -1;
@@ -75,7 +75,6 @@ int main(int argc, char *argv[]){
 	// Setup the server address structure.
 	// Port and IP should be filled in network byte order
     
-
 	int rudpConnect = rudp_connect(rudpSocket,server_ip,port);
 	if (rudpConnect <= 0){
 		printf("rudp_connect failed\n");
@@ -87,7 +86,9 @@ int main(int argc, char *argv[]){
         char tmpbuffer[BUFFER_SIZE];
         //send the message
         int byteSent = rudp_Send(rudpSocket,random_data,size2);
-        int headerSent = rudp_Send(rudpSocket,(char*)sender_header.checksum,sender_header.length);
+        char str[sender_header.checksum];
+        snprintf(str, sizeof(str), "%d", sender_header.checksum);
+        int headerSent = rudp_Send(rudpSocket,str,sender_header.length);
         printf("the total byte sent is %d\n",byteSent);
         if(byteSent<=0){
             free(random_data);
@@ -100,7 +101,7 @@ int main(int argc, char *argv[]){
             return -1;
         }
         rudp_recv(rudpSocket, tmpbuffer, sizeof(tmpbuffer));
-        //printf("The massage is: %c\n", *tmpbuffer);
+        printf("The massage is: %c\n", *tmpbuffer);
         if (strncmp(tmpbuffer, "ACK", sizeof("ACK")) < 0){ //Here!!!!!!!!!!!!
             printf("Acknowledgment hasn't received, break the loop\n");
             free(random_data);
@@ -115,6 +116,7 @@ int main(int argc, char *argv[]){
         } while (c != 'y' && c != 'n' && c != '\n');  // Clear input buffer
 
         if (c == 'n') {
+            printf("The socket will be closed\n");
             rudp_Send(rudpSocket,"EXIT",sizeof("EXIT"));
             break;
         }
@@ -134,5 +136,6 @@ int main(int argc, char *argv[]){
 
     free(random_data);
 	rudp_close(rudpSocket);
+    printf("The RUDP_Sender was successfully closed!\n");
     return 0;
 }
