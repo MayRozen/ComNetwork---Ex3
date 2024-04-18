@@ -72,7 +72,7 @@ int main(int argc, char *argv[]){
 		memset((char *)&RUDPsenderAddress, 0, sizeof(RUDPsenderAddress));
 		int senderSocket = rudp_accept(sockfd);
     	if (senderSocket == 0){
-            printf("listen failed with error code");
+            printf("listen failed with error code\n");
             rudp_close(sockfd);
             return -1;
     	}
@@ -87,13 +87,14 @@ int main(int argc, char *argv[]){
             random_data = rudp_recv(sockfd, receive_buff, bytes_read);
             int bytes_sent = rudp_Send(sockfd, receive_buff, random_data);
             if (bytes_sent == -1) {
-                perror("send() failed");
+                perror("send() failed\n");
                 rudp_close(sockfd);
                 return -1;
             }
 
             // Check if the received message is an exit message
             if (bytes_sent == 0) {
+                printf("An EXIT massage has been received\n");
                 rudp_disconnect(sockfd);
                 break; // Exit the loop if the sender sends an exit message
             }
@@ -102,12 +103,12 @@ int main(int argc, char *argv[]){
         } while (bytes_read > 0);
         int sender_header = rudp_recv(sockfd, header_checksum, header_length);
         if (sender_header == -1) {
-                perror("send() failed");
+                perror("send() failed\n");
                 rudp_close(sockfd);
                 return -1;
             }
         int checksum = calculate_checksum(receive_buff,total_bytes_sent);
-        if(checksum != (int)*header_checksum){//need fixing!!!!!!!!!!!!!!!!
+        if(checksum != (int)*header_checksum){
             printf("The data received isn't intactly\n");
             close(senderSocket);
             rudp_close(sockfd);
@@ -149,7 +150,7 @@ int main(int argc, char *argv[]){
         memset(receive_buff, 0, sizeof(receive_buff));
         sender_size = sizeof(struct sockaddr_in);
         if (recvfrom(sockfd->socket_fd, receive_buff, sizeof(receive_buff), 0,(struct sockaddr *)&sender, &sender_size) < 0) {
-            perror("failed to receive broadcast message");
+            perror("failed to receive broadcast message\n");
             break;
         }
         printf("%s\n", receive_buff);
