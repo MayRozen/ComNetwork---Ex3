@@ -143,14 +143,9 @@ int rudp_recv(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
         return -1;
     }
 
-    if (!sockfd->isConnected) {
-        perror("Socket is not connected\n");
-        return -1;
-    }
-
     ssize_t recv_len = recvfrom(sockfd->socket_fd, buffer, buffer_size, 0, NULL, NULL);
     if (recv_len == -1) {
-        perror("recvfrom() failed");
+        printf("recvfrom() failed");
         return -1;
     }
 
@@ -160,6 +155,12 @@ int rudp_recv(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
             return 0; 
         }
     }
+
+    if (!sockfd->isConnected) {
+        printf("Receive failed. Socket is not connected\n");
+        return -1;
+    }
+
     printf("received %ld byte\n",recv_len);
     return recv_len;
 }
@@ -186,7 +187,7 @@ int rudp_Send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
         ssize_t chunk_size = remaining > MAX_UDP_PAYLOAD_SIZE ? MAX_UDP_PAYLOAD_SIZE : remaining;
         ssize_t sent_len = sendto(sockfd->socket_fd, buffer, chunk_size, 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
         if (sent_len == -1) {
-            perror("sendto() failed");
+            perror("sendto() failed\n");
             return -1;  // Handle the error appropriately
         }
 
@@ -200,11 +201,20 @@ int rudp_Send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
 
 int rudp_disconnect(RUDP_Socket *sockfd){
     if(!sockfd->isConnected){
-       // printf("you are alredy discinnected");
+       printf("you are alredy discinnected\n");
         return 0;
     }
-    send(sockfd->socket_fd, "EXIT", sizeof(char*), 0);
+    struct sockaddr_in dest_addr = sockfd->dest_addr;
+
+    ssize_t sent_len = sendto(sockfd->socket_fd, "EXIT", sizeof("EXIT"), 0,
+                              (struct sockaddr *)&dest_addr, sizeof(dest_addr));
+    if (sent_len == -1) {
+        perror("sendto() failed\n");
+        return -1;  // Handle the error appropriately
+    }
+
     sockfd->isConnected = false;
+    printf("Disconnect message sent successfully\n");
     return 1;
 }
 
