@@ -15,25 +15,6 @@
 
 
 
-unsigned short int calculate_checksum(void *data, unsigned int bytes) {
-    unsigned short int *data_pointer = (unsigned short int *)data;
-    unsigned int total_sum = 0;
-    // Main summing loop
-    while (bytes > 1) {
-        total_sum += *data_pointer++;
-        bytes -= 2;
-    }
-    // Add left-over byte, if any
-    if (bytes > 0){
-        total_sum += *((unsigned char *)data_pointer);
-    }
-    // Fold 32-bit sum to 16 bits
-    while (total_sum >> 16){
-        total_sum = (total_sum & 0xFFFF) + (total_sum >> 16);
-    }
-    return (~((unsigned short int)total_sum));
-}
-
 char *util_generate_random_data(unsigned int size) {
     char *buffer = NULL;
     // Argument check.
@@ -63,9 +44,7 @@ int main(int argc, char *argv[]){
 	RUDP_Socket* rudpSocket = rudp_socket(false,port);
     unsigned int size2 = 2*1024*1024;
     char *random_data = util_generate_random_data(size2); //Our file  
-    Header sender_header;
-    sender_header.checksum = calculate_checksum(random_data,size2);
-    sender_header.length = size2;
+    //Header sender_header;
 
     if(rudpSocket->socket_fd == -1){
         perror("failed to create socket\n"); //The socket uncreated
@@ -79,35 +58,28 @@ int main(int argc, char *argv[]){
 	if (rudpConnect <= 0){
 		printf("rudp_connect failed\n");
 		return -1;
-	}           
+	}   
+    printf("the sender connected\n");        
     
     // int byteSent = 0;
 	do{
-        char tmpbuffer[BUFFER_SIZE];
+        //char tmpbuffer[BUFFER_SIZE];
         //send the message
         int byteSent = rudp_Send(rudpSocket,random_data,size2);
-        char str[sender_header.checksum];
-        snprintf(str, sizeof(str), "%d", sender_header.checksum);
-        int headerSent = rudp_Send(rudpSocket,str,sender_header.length);
-        printf("the total byte sent is %d\n",byteSent);
+        //printf("the total byte sent is %d\n",byteSent);
         if(byteSent<=0){
             free(random_data);
             close(rudpSocket->socket_fd);
             return -1;
         }
-        if(headerSent<=0){
-            free(random_data);
-            close(rudpSocket->socket_fd);
-            return -1;
-        }
-        rudp_recv(rudpSocket, tmpbuffer, sizeof(tmpbuffer));
-        printf("The massage is: %c\n", *tmpbuffer);
-        if (strncmp(tmpbuffer, "ACK", sizeof("ACK")) < 0){ //Here!!!!!!!!!!!!
-            printf("Acknowledgment hasn't received, break the loop\n");
-            free(random_data);
-            close(rudpSocket->socket_fd);
-            return -1;
-        } 
+        //rudp_recv(rudpSocket, tmpbuffer, sizeof(tmpbuffer));
+        //printf("The massage is: %c\n", *tmpbuffer);
+        // if (strncmp(tmpbuffer, "ACK", sizeof("ACK")) < 0){ //Here!!!!!!!!!!!!
+        //     printf("Acknowledgment hasn't received, break the loop\n");
+        //     free(random_data);
+        //     close(rudpSocket->socket_fd);
+        //     return -1;
+        // } 
         //rudp_recv(rudpSocket, tmpbuffer, sizeof(tmpbuffer));
         printf("Send the file again? y/n\n");
         char c;
