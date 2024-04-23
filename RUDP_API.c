@@ -28,6 +28,8 @@
 * You can also use this function as such without any change.
 */
 
+int sqNum = 0;
+
 unsigned short int calculate_checksum(void *data, unsigned int bytes) {
     unsigned short int *data_pointer = (unsigned short int *)data;
     unsigned int total_sum = 0;
@@ -52,12 +54,12 @@ int ACKtimeOut(int socket, int seqNumber, clock_t start, int timeout){
     while ((double)(clock() - start) / CLOCKS_PER_SEC < timeout) {
         int recvLen = recvfrom(socket, packet, sizeof(Packet) - 1, 0, NULL, 0);
         if (recvLen == -1) {
-        free(packet);
-        return 0;
+            free(packet);
+            return 0;
         }
         if (packet->header.seqNum == seqNumber && packet->header.flag.ACK == 1) {
-        free(packet);
-        return 1;
+            free(packet);
+            return 1;
         }
     }
   free(packet);
@@ -234,7 +236,7 @@ int rudp_accept(RUDP_Socket *sockfd){
     return 0;
 }
 
-int rudp_recv(RUDP_Socket *sockfd, void **buffer, int *buffer_size){
+int rudp_recv(RUDP_Socket *sockfd, void *buffer, int buffer_size){
     if (sockfd == NULL) {//if the socket isn't valid
         fprintf(stderr, "Invalid RUDP socket\n");
         return -1;
@@ -243,32 +245,33 @@ int rudp_recv(RUDP_Socket *sockfd, void **buffer, int *buffer_size){
         printf("Receive failed. Socket is not connected\n");
         return -1;
     }
-    printf("testing\n");
-    int sqNum = 0;
+    
     Packet *packet = malloc(sizeof(Packet));
     if(packet == NULL){
         printf("malloc failed\n");
         return -1;
     }
     memset(packet, 0, sizeof(Packet));
-
-    int recv_len = recvfrom(sockfd->socket_fd, packet, sizeof(Packet) , 0, NULL, 0);
+    printf("testing\n");
+    int recv_len = recvfrom(sockfd->socket_fd, packet, sizeof(Packet) - 1 , 0, NULL, 0);
     if (recv_len == -1) {
         printf("recvfrom() failed : %d", errno);
         free(packet);
         return -1;
     }
+    
     // check if the packet is corrupted, and send ack
     if (calculate_checksum(packet->data,packet->header.length) != packet->header.checksum) {
         printf("invalid data transform\n");
         free(packet);
         return -1;
     }
-    if (rudp_Send(sockfd, "ACK", sizeof("ACK")) == -1){
-        perror("send() failed\n");
-        free(packet);
-        return -1;
-    }
+    // if (rudp_Send(sockfd, "ACK", sizeof("ACK")) == -1){
+    //     perror("send() failed\n");
+    //     free(packet);
+    //     return -1;
+    // }
+    printf("testing\n");
     // if (packet->header.flag.SYN == 1) {  // connection request
     //     printf("received connection request\n");
     //     free(packet);
@@ -279,18 +282,18 @@ int rudp_recv(RUDP_Socket *sockfd, void **buffer, int *buffer_size){
             timeoutSeting(sockfd->socket_fd, 1 * 10);//ten seconds
         }
         if (packet->header.flag.ACK == 1 && packet->header.flag.SYN == 1) {  // last packet
-            *buffer = malloc(packet->header.length);  // Allocate memory for data
+            buffer = malloc(packet->header.length);  // Allocate memory for data
             memcpy(buffer, packet->data, packet->header.length);
-            *buffer_size = packet->header.length;
+            buffer_size = packet->header.length;
             sqNum = 0;
             timeoutSeting(sockfd->socket_fd, 10000000);
             free(packet);
             return recv_len;
         }
         if (packet->header.flag.DATA == 1) {     // data packet
-            *buffer = malloc(packet->header.length);  // Allocate memory for data
-            memcpy(*buffer, packet->data, packet->header.length);
-            *buffer_size = packet->header.length;
+            buffer = malloc(packet->header.length);  // Allocate memory for data
+            memcpy(buffer, packet->data, packet->header.length);
+            buffer_size = packet->header.length;
             free(packet);
             sqNum++;
             return recv_len;
@@ -309,16 +312,47 @@ int rudp_recv(RUDP_Socket *sockfd, void **buffer, int *buffer_size){
 
     if(sockfd->isServer){
         if(packet->header.flag.FIN == 1){
-            printf("sender sent exit message\n");
             free(packet);
-            rudp_close(sockfd);
-            return 0; 
+            timeoutSeting(sockfd->socket_fd,10);
+            packet = malloc(sizeof(Packet));
+            time_t finishTime = time(NULL);
+            while ((double)(time(NULL) - finishTime) < 1) {
+                memset(packet, 0, sizeof(Packet));
+                recvfrom(sockfd->socket_fd, packet, sizeof(Packet) - 1, 0, NULL, 0);
+                if (packet->header.flag.FIN == 1) {
+                    Packet *ack = malloc(sizeof(Packet));
+                    memset(ack, 0, sizeof(Packet));
+                    ack->header.flag.ACK = 1;
+                    if (packet->header.flag.FIN == 1) {
+                        ack->header.flag.FIN = 1;
+                    }
+                    if (packet->header.flag.SYN == 1) {
+                        ack->header.flag.SYN = 1;
+                    }
+                    if (packet->header.flag.DATA == 1) {
+                        ack->header.flag.DATA = 1;
+                    }
+                    ack->header.seqNum = packet->header.seqNum;
+                    ack->header.checksum = calculate_checksum(packet->data,packet->header.length);
+                    int sendResult = sendto(sockfd->socket_fd, ack, sizeof(Packet), 0, NULL, 0);
+                    if (sendResult == -1) {
+                        printf("sendto() failed : %d", errno);
+                        free(ack);
+                        return 0;
+                    }
+                    free(ack);
+                    finishTime = time(NULL);
+                }
+                free(packet);
+                rudp_close(sockfd);
+                return -1;
+            }
         }
     }
     printf("received %d byte\n",recv_len);
     free(packet);
     //free(buffer);
-    return recv_len;
+    return 0;
 }
 
 int rudp_Send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
@@ -339,7 +373,7 @@ int rudp_Send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
     int packets_num = buffer_size / MAX_SIZE;
     // calculate the size of the last packet
     int last_packet_size = buffer_size % MAX_SIZE;
-
+    printf("testing\n");
     Packet *packet = malloc(sizeof(Packet));// need to free!!!!!!!!!!!!!!!!!!!!!!!!!!!
     if(packet == NULL){
         printf("malloc failed\n");
@@ -373,6 +407,7 @@ int rudp_Send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
                 perror("sendto() failed\n");
                 return -1;  // Handle the error appropriately
             }
+            printf("testing\n");
             // sent_total += sent_len;
             // remaining -= sent_len;
             // buffer_ptr += sent_total;

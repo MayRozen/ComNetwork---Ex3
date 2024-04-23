@@ -50,7 +50,7 @@ int rudp_accept(RUDP_Socket *sockfd);
 
 // Receives data from the other side and put it into the buffer. Returns the number of received bytes on success,
 // 0 if got FIN packet (disconnect), and -1 on error. Fails if called when the socket is disconnected.
-int rudp_recv(RUDP_Socket *sockfd, void **buffer, int *buffer_size);
+int rudp_recv(RUDP_Socket *sockfd, void *buffer, int buffer_size);
 
 // Sends data stores in buffer to the other side. Returns the number of sent bytes on success,
 // 0 if got FIN packet (disconnect), and -1 on error. Fails if called when the socket is disconnected.

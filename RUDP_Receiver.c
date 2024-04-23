@@ -64,7 +64,7 @@ int main(int argc, char *argv[]){
         //int header_length = 0;
         gettimeofday(&start_time, NULL);
         do {
-            random_data = rudp_recv(sockfd, &receive_buff, &bytes_read);
+            random_data = rudp_recv(sockfd, receive_buff, bytes_read);
             // int bytes_sent = rudp_Send(sockfd, "ACK", sizeof("ACK"));
             // if (bytes_sent == -1) {
             //     perror("send() failed\n");
@@ -132,7 +132,7 @@ int main(int argc, char *argv[]){
         printf("Total Average Bandwidth: %.2f bytes/second\n", total_average_bandwidth);
 
         printf("Listening...\n");
-        memset(receive_buff, 0, sizeof(receive_buff));
+        memset(receive_buff, 0, sizeof(&receive_buff));
         sender_size = sizeof(struct sockaddr_in);
         if (recvfrom(sockfd->socket_fd, receive_buff, sizeof(receive_buff), 0,(struct sockaddr *)&sender, &sender_size) < 0) {
             perror("failed to receive broadcast message\n");
