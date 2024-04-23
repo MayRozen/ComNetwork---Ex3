@@ -23,7 +23,7 @@ int main(int argc, char *argv[]){
     unsigned short int port = atoi(argv[1]);
 	signal(SIGPIPE, SIG_IGN); // prevent crash on closing socket
     RUDP_Socket *sockfd = rudp_socket(true,port);
-    char receive_buff[BUFFER_SIZE];
+    char* receive_buff = NULL;
     struct sockaddr_in sender;
     socklen_t sender_size;
 	struct timeval start_time, end_time;
@@ -57,14 +57,14 @@ int main(int argc, char *argv[]){
             return -1;
     	}
         
-		unsigned int bytes_read = BUFFER_SIZE;
+		int bytes_read = 0;
         size_t total_bytes_sent = 0;
         int random_data;
         //char* header_checksum = 0;
         //int header_length = 0;
         gettimeofday(&start_time, NULL);
         do {
-            random_data = rudp_recv(sockfd, receive_buff, bytes_read);
+            random_data = rudp_recv(sockfd, &receive_buff, &bytes_read);
             // int bytes_sent = rudp_Send(sockfd, "ACK", sizeof("ACK"));
             // if (bytes_sent == -1) {
             //     perror("send() failed\n");
