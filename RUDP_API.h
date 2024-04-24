@@ -1,7 +1,7 @@
 #pragma once
 #include <stdlib.h>
 #include <stdbool.h>
-#define MAX_SIZE  60000
+
 // A struct that represents RUDP Socket
 typedef struct _rudp_socket{
     int socket_fd; // UDP socket file descriptor
@@ -10,29 +10,12 @@ typedef struct _rudp_socket{
     struct sockaddr_in dest_addr; // Destination address. Client fills it when it connects via rudp_connect(), server fills it when it accepts a connection via rudp_accept().
 } RUDP_Socket;
 
-typedef struct _flags {
-  unsigned int SYN : 1;
-  unsigned int ACK : 1;
-  unsigned int DATA : 1;
-  unsigned int FIN : 1;
-} Flags;
-
 typedef struct rudp_header{
-    Flags flag;
-    int length;
-    int checksum;
-    int seqNum;
-}Header;
-
-typedef struct packet {
-  Header header;
-  char data[MAX_SIZE];
-} Packet;
-
-unsigned short int calculate_checksum(void *data, unsigned int bytes);
-
-int timeoutSeting(int socket, int time);
-  
+        char flag;
+        int length;
+        int checksum;
+    }Header,*pHeader;
+    
 //char *util_generate_random_data(unsigned int size);
 
 // Allocates a new structure for the RUDP socket (contains basic information about the socket itself).
@@ -50,7 +33,7 @@ int rudp_accept(RUDP_Socket *sockfd);
 
 // Receives data from the other side and put it into the buffer. Returns the number of received bytes on success,
 // 0 if got FIN packet (disconnect), and -1 on error. Fails if called when the socket is disconnected.
-int rudp_recv(RUDP_Socket *sockfd, void *buffer, int buffer_size);
+int rudp_recv(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size);
 
 // Sends data stores in buffer to the other side. Returns the number of sent bytes on success,
 // 0 if got FIN packet (disconnect), and -1 on error. Fails if called when the socket is disconnected.
