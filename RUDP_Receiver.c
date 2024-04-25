@@ -48,6 +48,29 @@ int main(int argc, char *argv[]){
 	memset((char *)&RUDPsenderAddress, 0, sizeof(RUDPsenderAddress));
 	//keep listening for data
 	while (1){
+        // Attempt to receive data (non-blocking)
+        ssize_t recv_result = recvfrom(sockfd->socket_fd, receive_buff, sizeof(receive_buff), MSG_DONTWAIT, (struct sockaddr *)&sender, &sender_size);
+
+        // Check if data was received successfully
+        if (recv_result > 0) {
+            // Process received data
+            printf("Received data: %s\n", receive_buff);
+        } else if (recv_result == 0) {
+            // No data available, wait or retry
+            // You can implement a wait mechanism here if needed
+            usleep(10000); // Sleep for 10 milliseconds
+        } else {
+            // Error occurred
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                // No data available, wait or retry
+                // You can implement a wait mechanism here if needed
+                usleep(10000); // Sleep for 10 milliseconds
+            } else {
+                // Handle other errors
+                perror("recvfrom failed");
+                break;
+            }
+        }
 		// zero Sender address 
 		memset((char *)&RUDPsenderAddress, 0, sizeof(RUDPsenderAddress));
 		int senderSocket = rudp_accept(sockfd);
