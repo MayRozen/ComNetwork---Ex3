@@ -62,7 +62,7 @@ int main(int argc, char *argv[]){
     printf("the sender is connected\n");        
     
 	do{
-        //char tmpbuffer[BUFFER_SIZE];
+        char tmpbuffer[BUFFER_SIZE];
         //send the message
         int byteSent = rudp_Send(rudpSocket,random_data,size2);
         printf("sent data to receiver\n");
@@ -72,14 +72,14 @@ int main(int argc, char *argv[]){
             close(rudpSocket->socket_fd);
             return -1;
         }
-        //rudp_recv(rudpSocket, tmpbuffer, sizeof(tmpbuffer));
-        //printf("The massage is: %c\n", *tmpbuffer);
+        rudp_recv(rudpSocket, tmpbuffer, sizeof(tmpbuffer));
+        printf("The massage is: %c\n", *tmpbuffer);
         // if (strncmp(tmpbuffer, "ACK", sizeof("ACK")) < 0){ //Here!!!!!!!!!!!!
-        //     printf("Acknowledgment hasn't received, break the loop\n");
-        //     free(random_data);
-        //     close(rudpSocket->socket_fd);
-        //     return -1;
-        // } 
+        //      printf("Acknowledgment hasn't received, break the loop\n");
+        //      free(random_data);
+        //      close(rudpSocket->socket_fd);
+        //      return -1;
+        //  } 
         //rudp_recv(rudpSocket, tmpbuffer, sizeof(tmpbuffer));
         printf("Send the file again? y/n\n");
         char c;
@@ -89,7 +89,7 @@ int main(int argc, char *argv[]){
 
         if (c == 'n') {
             printf("The socket will be closed\n");
-            rudp_Send(rudpSocket,"EXIT",sizeof("EXIT"));
+            rudp_Send(rudpSocket,"EXIT", sizeof("EXIT"));
             break;
         }
     }while(size2 > 0); 
