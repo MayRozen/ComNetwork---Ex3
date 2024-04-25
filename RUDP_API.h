@@ -27,7 +27,7 @@ typedef struct rudp_header{
 typedef struct packet {
   Header header;
   char data[MAX_SIZE];
-} Packet;
+} packet, *pPacket;
 
 unsigned short int calculate_checksum(void *data, unsigned int bytes);
 
