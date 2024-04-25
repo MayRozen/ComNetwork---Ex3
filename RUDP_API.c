@@ -52,7 +52,7 @@ unsigned short int calculate_checksum(void *data, unsigned int bytes) {
 int ACKtimeOut(int socket, int seqNumber, clock_t start, int timeout){
     pPacket pack = (pPacket)malloc(sizeof(packet));
     while ((double)(clock() - start) / CLOCKS_PER_SEC < timeout) {
-        int recvLen = recvfrom(socket, pack, sizeof(packet) - 1, 0, NULL, 0);
+        int recvLen = recvfrom(socket, pack, sizeof(packet)-1, 0, NULL, 0);
         if (recvLen == -1) {
             free(pack);
             return 0;
@@ -169,7 +169,12 @@ int rudp_connect(RUDP_Socket *sockfd, const char *dest_ip, unsigned short int de
             // receive SYN-ACK message
             recv_packet = malloc(sizeof(packet));
             memset(recv_packet, 0, sizeof(packet));
-            recvBytes = recvfrom(sockfd->socket_fd, recv_packet, sizeof(packet), 0, NULL, 0);
+            struct sockaddr_in sender_address;
+            socklen_t sender_address_len = sizeof(sender_address);
+
+            recvBytes = recvfrom(sockfd->socket_fd, recv_packet, sizeof(packet), 0, (struct sockaddr *)&sender_address, &sender_address_len);
+
+            //recvBytes = recvfrom(sockfd->socket_fd, recv_packet, sizeof(packet), 0, NULL, 0);
             if (recvBytes == -1) {//problom!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 perror("recvfrom failed");
                 return -1;
@@ -243,6 +248,10 @@ int rudp_recv(RUDP_Socket *sockfd, void *buffer, int buffer_size){
     }
     if (!sockfd->isConnected) {//if the sender is not connected
         printf("Receive failed. Socket is not connected\n");
+        return -1;
+    }
+    if(strstr(buffer,"EXIT")!=NULL){
+        rudp_disconnect(sockfd);
         return -1;
     }
     
@@ -347,7 +356,8 @@ int rudp_recv(RUDP_Socket *sockfd, void *buffer, int buffer_size){
                     }
                     ack->header.seqNum = pack->header.seqNum;
                     ack->header.checksum = calculate_checksum(pack->data,pack->header.length);
-                    int sendResult = sendto(sockfd->socket_fd, ack, sizeof(packet), 0, NULL, 0);
+                    socklen_t sender_size = sizeof(struct sockaddr_in);
+                    int sendResult = sendto(sockfd->socket_fd, ack, sizeof(packet), 0, NULL, &sender_size);
                     if (sendResult == -1) {
                         perror("sendto() failed");
                         free(ack);
