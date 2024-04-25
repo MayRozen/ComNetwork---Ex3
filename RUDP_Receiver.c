@@ -62,7 +62,7 @@ int main(int argc, char *argv[]){
         gettimeofday(&start_time, NULL);
         do {
             int random_data = rudp_recv(sockfd, receive_buff, bytes_read);
-            if (random_data == 0) {
+            if (random_data == 0 || strstr(receive_buff,"EXIT")!=NULL) { // 'strstr' compares between two strings
                 printf("An EXIT massage has been received\n");
                 rudp_disconnect(sockfd);
                 break; // Exit the loop if the sender sends an exit message
@@ -106,7 +106,7 @@ int main(int argc, char *argv[]){
         printf("Listening...\n");
         memset(receive_buff, 0, sizeof(&receive_buff));
         sender_size = sizeof(struct sockaddr_in);
-        if (recvfrom(sockfd->socket_fd, receive_buff, sizeof(receive_buff), 0,(struct sockaddr *)&sender, &sender_size) < 0) {
+        if (sockfd->isConnected && recvfrom(sockfd->socket_fd, receive_buff, sizeof(receive_buff), 0,(struct sockaddr *)&sender, &sender_size) < 0) {
             perror("failed to receive broadcast message\n");
             break;
         }
