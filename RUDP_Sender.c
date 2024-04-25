@@ -61,13 +61,12 @@ int main(int argc, char *argv[]){
 	}   
     printf("the sender is connected\n");        
     
-    // int byteSent = 0;
 	do{
         //char tmpbuffer[BUFFER_SIZE];
         //send the message
         int byteSent = rudp_Send(rudpSocket,random_data,size2);
         printf("sent data to receiver\n");
-        //printf("the total byte sent is %d\n",byteSent);
+        printf("the total byte sent is %d\n",byteSent);
         if(byteSent<=0){
             free(random_data);
             close(rudpSocket->socket_fd);
