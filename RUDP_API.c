@@ -409,7 +409,7 @@ int rudp_Send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
         // ssize_t chunk_size = remaining > MAX_UDP_PAYLOAD_SIZE ? MAX_UDP_PAYLOAD_SIZE : remaining;
             sent_len = sendto(sockfd->socket_fd, packet, sizeof(Packet), 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
             if (sent_len == -1) {
-                perror("sendto() failed\n");
+                perror("sendto() failed");
                 return -1;  // Handle the error appropriately
             }
        // }while (ACKtimeOut(sockfd->socket_fd, i, clock(), 1) <= 0);
