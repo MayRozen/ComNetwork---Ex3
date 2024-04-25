@@ -52,11 +52,11 @@ unsigned short int calculate_checksum(void *data, unsigned int bytes) {
 int ACKtimeOut(int socket, int seqNumber, clock_t start, int timeout){
     pPacket pack = (pPacket)malloc(sizeof(packet));
     while ((double)(clock() - start) / CLOCKS_PER_SEC < timeout) {
-        int recvLen = recvfrom(socket, pack, sizeof(packet)-1, 0, NULL, 0);
-        if (recvLen == -1) {
-            free(pack);
-            return 0;
-        }
+        //int recvLen = recvfrom(socket, pack, sizeof(packet)-1, 0, NULL, 0);
+        // if (recvLen == -1) {
+        //     free(pack);
+        //     return 0;
+        // }
         if (pack->header.seqNum == seqNumber && pack->header.flag.ACK == 1) {
             free(pack);
             return 1;
@@ -263,11 +263,11 @@ int rudp_recv(RUDP_Socket *sockfd, void *buffer, int buffer_size){
     }
     memset(pack, 0, sizeof(packet));
     int recv_len = recvfrom(sockfd->socket_fd, pack, sizeof(packet) , 0, NULL, 0);
-    if (recv_len == -1) {
-        perror("recvfrom() failed 1\n");
-        free(pack);
-        return -1;
-    }
+    // if (recv_len == -1) {
+    //     perror("recvfrom() failed\n");
+    //     free(pack);
+    //     return -1;
+    // }
     
     int checksum = calculate_checksum(pack->data,pack->header.length);
     // check if the packet is corrupted, and send ack
@@ -356,8 +356,7 @@ int rudp_recv(RUDP_Socket *sockfd, void *buffer, int buffer_size){
                     }
                     ack->header.seqNum = pack->header.seqNum;
                     ack->header.checksum = calculate_checksum(pack->data,pack->header.length);
-                    socklen_t sender_size = sizeof(struct sockaddr_in);
-                    int sendResult = sendto(sockfd->socket_fd, ack, sizeof(packet), 0, NULL, &sender_size);
+                    int sendResult = sendto(sockfd->socket_fd, ack, sizeof(packet), 0, NULL, 0);
                     if (sendResult == -1) {
                         perror("sendto() failed");
                         free(ack);
@@ -422,10 +421,10 @@ int rudp_Send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
        // do {
         // ssize_t chunk_size = remaining > MAX_UDP_PAYLOAD_SIZE ? MAX_UDP_PAYLOAD_SIZE : remaining;
             sent_len = sendto(sockfd->socket_fd, pack, sizeof(packet), 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
-            if (sent_len == -1) {
-                perror("sendto() failed\n");
-                return -1;  // Handle the error appropriately
-            }
+            // if (sent_len == -1) {
+            //     perror("sendto() failed\n");
+            //     return -1;  // Handle the error appropriately
+            // }
        // }while (ACKtimeOut(sockfd->socket_fd, i, clock(), 1) <= 0);
         sent_total += sent_len;
     }
