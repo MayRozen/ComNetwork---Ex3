@@ -65,10 +65,6 @@ int main(int argc, char *argv[]){
                 // No data available, wait or retry
                 // You can implement a wait mechanism here if needed
                 usleep(10000); // Sleep for 10 milliseconds
-            } else {
-                // Handle other errors
-                perror("recvfrom failed");
-                break;
             }
         }
 		// zero Sender address 
@@ -85,7 +81,7 @@ int main(int argc, char *argv[]){
         gettimeofday(&start_time, NULL);
         do {
             int random_data = rudp_recv(sockfd, receive_buff, bytes_read);
-            if (random_data == 0 || strstr(receive_buff,"EXIT")!=NULL) { // 'strstr' compares between two strings
+            if (random_data <= 0 || strstr(receive_buff,"EXIT")!=NULL) { // 'strstr' compares between two strings
                 printf("An EXIT massage has been received\n");
                 rudp_disconnect(sockfd);
                 break; // Exit the loop if the sender sends an exit message
