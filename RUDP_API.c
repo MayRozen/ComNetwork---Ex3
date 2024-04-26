@@ -260,7 +260,7 @@ int rudp_recv(RUDP_Socket *sockfd, void *buffer, int buffer_size){
     memset(pack, 0, sizeof(packet));
     int recv_len = recvfrom(sockfd->socket_fd, pack, sizeof(packet) , 0, NULL, 0);
     if (recv_len == -1) {
-        perror("recvfrom() failed test");
+        perror("recvfrom() failed");
         free(pack);
         return -1;
     }
@@ -290,6 +290,11 @@ int rudp_recv(RUDP_Socket *sockfd, void *buffer, int buffer_size){
             timeoutSeting(sockfd->socket_fd, 1);
             free(pack);
             free(buffer);
+            
+            if(pack->header.flag.FIN == 1){
+                printf("succses\n");
+                return -2;
+            }
             return recv_len;
         }
         if (pack->header.flag.DATA == 1) {     // data packet
@@ -304,18 +309,23 @@ int rudp_recv(RUDP_Socket *sockfd, void *buffer, int buffer_size){
             free(pack);
             free(buffer);
             sqNum++;
+            if(pack->header.flag.FIN == 1){
+                printf("succses\n");
+                return -2;
+            }
             return recv_len;
         }
     } 
     else if (pack->header.flag.DATA == 1) {
         free(pack);
+        printf("fail\n");
         return -1;
     }
 
     if(sockfd->isServer){
         if(pack->header.flag.FIN == 1){
             free(pack);
-            timeoutSeting(sockfd->socket_fd,10);
+            timeoutSeting(sockfd->socket_fd,1000);
             pack = (pPacket)malloc(sizeof(packet));
             if(pack == NULL){
                 printf("malloc failed\n");
@@ -361,11 +371,14 @@ int rudp_recv(RUDP_Socket *sockfd, void *buffer, int buffer_size){
                     free(ack);
                     finishTime = time(NULL);
                 }
-                free(pack);
-                rudp_disconnect(sockfd);
-                printf("test");
-                return 0;
             }
+            free(pack);
+            //rudp_disconnect(sockfd);
+            printf("sender closed connection\n");
+            return -2;
+        }
+        else{
+            free(pack);
         }
     }
     else{
