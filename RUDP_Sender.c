@@ -67,19 +67,20 @@ int main(int argc, char *argv[]){
         int byteSent = rudp_Send(rudpSocket,random_data,size2);
         printf("sent data to receiver\n");
         printf("the total byte sent is %d\n",byteSent);
-        if(byteSent <= 0){
+        if(byteSent<=0){
             free(random_data);
-            rudp_close(rudpSocket);
+            close(rudpSocket->socket_fd);
             return -1;
         }
-        // int recv_byte = rudp_recv(rudpSocket, tmpbuffer, sizeof(tmpbuffer));
-        // if(recv_byte <= 0){
-        //     perror("recv failed");
-        //     free(random_data);
-        //     rudp_close(rudpSocket);
-        //     return -1;
-        // }
+        rudp_recv(rudpSocket, tmpbuffer, sizeof(tmpbuffer));
         printf("The massage is: %c\n", *tmpbuffer);
+        // if (strncmp(tmpbuffer, "ACK", sizeof("ACK")) < 0){ //Here!!!!!!!!!!!!
+        //      printf("Acknowledgment hasn't received, break the loop\n");
+        //      free(random_data);
+        //      close(rudpSocket->socket_fd);
+        //      return -1;
+        //  } 
+        //rudp_recv(rudpSocket, tmpbuffer, sizeof(tmpbuffer));
         printf("Send the file again? y/n\n");
         char c;
         do {
