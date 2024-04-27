@@ -86,17 +86,17 @@ int main(int argc, char *argv[]){
                 rudp_disconnect(sockfd);
                 break; // Exit the loop if the sender sends an exit message
             }
-            else if(random_data == -1){
+            else if(random_data < 0){
                 perror("receive failed");
                 //rudp_disconnect(sockfd);
                 rudp_close(sockfd);
                 return -1;
             }
-            else if(random_data == -2){
-                printf("test\n");
-                rudp_disconnect(sockfd);
-                break;
-            }
+            // else if(random_data == -2){
+            //     printf("test\n");
+            //     rudp_disconnect(sockfd);
+            //     break;
+            // }
             total_bytes_sent += random_data;
             //bytes_read -= random_data;
             printf("the bytes_read is: %d\n",bytes_read);   
