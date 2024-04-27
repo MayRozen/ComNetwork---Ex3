@@ -243,11 +243,15 @@ int rudp_accept(RUDP_Socket *sockfd){
 
 int rudp_recv(RUDP_Socket *sockfd, void *buffer, int buffer_size){
     if (sockfd == NULL) {//if the socket isn't valid
-        perror("Invalid RUDP socket");
+        fprintf(stderr, "Invalid RUDP socket\n");
         return -1;
     }
     if (!sockfd->isConnected) {//if the sender is not connected
         printf("Receive failed. Socket is not connected\n");
+        return -1;
+    }
+    if(strstr(buffer,"EXIT")!=NULL){
+        rudp_disconnect(sockfd);
         return -1;
     }
     
@@ -290,11 +294,6 @@ int rudp_recv(RUDP_Socket *sockfd, void *buffer, int buffer_size){
             timeoutSeting(sockfd->socket_fd, 1);
             free(pack);
             free(buffer);
-            
-            if(pack->header.flag.FIN == 1){
-                printf("succses\n");
-                return -2;
-            }
             return recv_len;
         }
         if (pack->header.flag.DATA == 1) {     // data packet
@@ -309,23 +308,19 @@ int rudp_recv(RUDP_Socket *sockfd, void *buffer, int buffer_size){
             free(pack);
             free(buffer);
             sqNum++;
-            // if(pack->header.flag.FIN == 1){
-            //     printf("succses\n");
-            //     return -2;
-            // }
             return recv_len;
         }
     } 
     else if (pack->header.flag.DATA == 1) {
+        printf("test\n");
         free(pack);
-        printf("fail\n");
         return -1;
     }
 
     if(sockfd->isServer){
         if(pack->header.flag.FIN == 1){
             free(pack);
-            timeoutSeting(sockfd->socket_fd,1000);
+            timeoutSeting(sockfd->socket_fd,10);
             pack = (pPacket)malloc(sizeof(packet));
             if(pack == NULL){
                 printf("malloc failed\n");
@@ -371,26 +366,22 @@ int rudp_recv(RUDP_Socket *sockfd, void *buffer, int buffer_size){
                     free(ack);
                     finishTime = time(NULL);
                 }
+                free(pack);
+                return 0;
             }
-            free(pack);
-            //rudp_disconnect(sockfd);
-            printf("sender closed connection\n");
-            return -2;
-        }
-        else{
-            free(pack);
         }
     }
     else{
         free(pack);
     }
     printf("received %d byte\n",recv_len);
-    return -1;
+    return recv_len;
 }
 
 int rudp_Send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
     if (sockfd == NULL) {
         fprintf(stderr, "Invalid RUDP socket\n");
+        rudp_close(sockfd);
         return 0;
     }
 
@@ -406,6 +397,7 @@ int rudp_Send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
     pPacket pack = (pPacket)malloc(sizeof(packet));
     if(pack == NULL){
         printf("malloc failed\n");
+        free(pack);
         return -1;
     }
     int sent_len = 0;
@@ -419,8 +411,9 @@ int rudp_Send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
         if (i == packets_num - 1 && last_packet_size == 0) {
             pack->header.flag.FIN = 1;
         }
-        // copy the data in the packet to a buffer
+        // put the data in the packet
         memcpy(pack->data, buffer + i * MAX_SIZE, MAX_SIZE);
+        // set the length of the packet
         pack->header.length = MAX_SIZE;
         // calculate the checksum of the packet before the actual sending
         pack->header.checksum = calculate_checksum(pack->data,pack->header.length);
@@ -429,7 +422,7 @@ int rudp_Send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
         // ssize_t chunk_size = remaining > MAX_UDP_PAYLOAD_SIZE ? MAX_UDP_PAYLOAD_SIZE : remaining;
             sent_len = sendto(sockfd->socket_fd, pack, sizeof(packet), 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
             // if (sent_len == -1) {
-            //     perror("sendto() failed");
+            //     perror("sendto() failed\n");
             //     return -1;  // Handle the error appropriately
             // }
        // }while (ACKtimeOut(sockfd->socket_fd, i, clock(), 1) <= 0);
@@ -459,11 +452,11 @@ int rudp_Send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
 
 int rudp_disconnect(RUDP_Socket *sockfd){
     if(!sockfd->isConnected){
-       printf("you are already discinnected\n");
+       printf("you are alredy discinnected\n");
         return 0;
     }
     sockfd->isConnected = false;
-    //close(sockfd->socket_fd);
+    close(sockfd->socket_fd);
     printf("Disconnected successfully\n");
     return 1;
 }
