@@ -93,7 +93,7 @@ int main(int argc, char *argv[]){
             rudp_Send(rudpSocket,"EXIT", sizeof("EXIT"));
             break;
         }
-    }while(size2>0); 
+    }while(1); 
 
 	struct sockaddr_in fromAddress;
 
