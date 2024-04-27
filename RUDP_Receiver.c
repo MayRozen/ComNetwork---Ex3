@@ -81,25 +81,21 @@ int main(int argc, char *argv[]){
         gettimeofday(&start_time, NULL);
         do {
             int random_data = rudp_recv(sockfd, receive_buff, bytes_read);
-            if (random_data == 0 ) { // 'strstr' compares between two strings
+            if (random_data <= 0 || strstr(receive_buff,"EXIT")!=NULL) { // 'strstr' compares between two strings
                 printf("An EXIT massage has been received\n");
                 rudp_disconnect(sockfd);
                 break; // Exit the loop if the sender sends an exit message
             }
             else if(random_data < 0){
-                perror("receive failed");
-                //rudp_disconnect(sockfd);
+                printf("receive failed\n");
+                rudp_disconnect(sockfd);
                 rudp_close(sockfd);
                 return -1;
             }
-            // else if(random_data == -2){
-            //     printf("test\n");
-            //     rudp_disconnect(sockfd);
-            //     break;
-            // }
+            bytes_read -= random_data;
             total_bytes_sent += random_data;
-            //bytes_read -= random_data;
-            printf("the bytes_read is: %d\n",bytes_read);   
+            printf("the bytes_read is: %d\n",bytes_read);
+            
         } while (bytes_read > 0);
         printf("the total bytes sent is: %zu\n", total_bytes_sent);
         if(total_bytes_sent < 2 * 1024 * 1024){ // Checking if the file is at least 2MB
@@ -130,7 +126,7 @@ int main(int argc, char *argv[]){
         memset(receive_buff, 0, sizeof(&receive_buff));
         sender_size = sizeof(struct sockaddr_in);
         if (sockfd->isConnected && recvfrom(sockfd->socket_fd, receive_buff, sizeof(receive_buff), 0,(struct sockaddr *)&sender, &sender_size) < 0) {
-            printf("failed to receive broadcast message\n");
+            perror("failed to receive broadcast message\n");
             break;
         }
         printf("%s\n", receive_buff);
