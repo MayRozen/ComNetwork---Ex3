@@ -13,8 +13,6 @@
 #include "RUDP_API.h"
 #define BUFFER_SIZE 2*1024*1024
 
-
-
 char *util_generate_random_data(unsigned int size) {
     char *buffer = NULL;
     // Argument check.
@@ -26,8 +24,9 @@ char *util_generate_random_data(unsigned int size) {
         return NULL;
     // Randomize the seed of the random number generator.
     srand(time(NULL));
-    for (unsigned int i = 0; i < size; i++)
-        *(buffer + i) = ((unsigned int)rand() % 256);
+    for (unsigned int i = 0; i < size; i++){
+        *(buffer + i) = ((unsigned int)rand() %256);
+    }
     return buffer;
 }
 
@@ -41,9 +40,11 @@ int main(int argc, char *argv[]){
     
     unsigned short int port = atoi(argv[1]);
     const char *server_ip = argv[2];
-	RUDP_Socket* rudpSocket = rudp_socket(false,port);
+    RUDP_Socket* rudpSocket = rudp_socket(false, port);
     unsigned int size2 = 2*1024*1024;
-    char *random_data = util_generate_random_data(size2); //Our file  
+    char *random_data = util_generate_random_data(size2); //Our file 
+    printf("first - random_data is: %p\n", (void *)random_data); 
+    printf("second - random_data's size is: %u\n", size2);
     //Header sender_header;
 
     if(rudpSocket->socket_fd == -1){
@@ -73,7 +74,7 @@ int main(int argc, char *argv[]){
             return -1;
         }
         rudp_recv(rudpSocket, tmpbuffer, sizeof(tmpbuffer));
-        printf("The massage is: %c\n", *tmpbuffer);
+        //printf("The massage is: %c\n", *tmpbuffer);
         // if (strncmp(tmpbuffer, "ACK", sizeof("ACK")) < 0){ //Here!!!!!!!!!!!!
         //      printf("Acknowledgment hasn't received, break the loop\n");
         //      free(random_data);
@@ -92,7 +93,7 @@ int main(int argc, char *argv[]){
             rudp_Send(rudpSocket,"EXIT", sizeof("EXIT"));
             break;
         }
-    }while(size2 > 0); 
+    }while(size2>0); 
 
 	struct sockaddr_in fromAddress;
 
