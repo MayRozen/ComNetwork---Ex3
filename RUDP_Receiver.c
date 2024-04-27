@@ -69,6 +69,7 @@ int main(int argc, char *argv[]){
         }
 		// zero Sender address 
 		memset((char *)&RUDPsenderAddress, 0, sizeof(RUDPsenderAddress));
+        sender_size = sizeof(sender);
 		int senderSocket = rudp_accept(sockfd);
     	if (senderSocket <= 0){
             printf("listen failed with error code\n");
@@ -77,10 +78,11 @@ int main(int argc, char *argv[]){
     	}
         
 		int bytes_read = BUFFER_SIZE;
-        size_t total_bytes_sent = 0;
+        int total_bytes_sent = 0;
         gettimeofday(&start_time, NULL);
         do {
             int random_data = rudp_recv(sockfd, receive_buff, bytes_read);
+            printf("the random data is: %d", random_data);
             if (random_data <= 0 || strstr(receive_buff,"EXIT")!=NULL) { // 'strstr' compares between two strings
                 printf("An EXIT massage has been received\n");
                 rudp_disconnect(sockfd);
@@ -97,7 +99,7 @@ int main(int argc, char *argv[]){
             printf("the bytes_read is: %d\n",bytes_read);
             
         } while (bytes_read > 0);
-        printf("the total bytes sent is: %zu\n", total_bytes_sent);
+        printf("the total bytes sent is: %d\n", total_bytes_sent);
         if(total_bytes_sent < 2 * 1024 * 1024){ // Checking if the file is at least 2MB
             printf("The file's size is smaller than expected\n");
             close(senderSocket);
@@ -125,10 +127,11 @@ int main(int argc, char *argv[]){
         printf("Listening...\n");
         memset(receive_buff, 0, sizeof(&receive_buff));
         sender_size = sizeof(struct sockaddr_in);
-        if (sockfd->isConnected && recvfrom(sockfd->socket_fd, receive_buff, sizeof(receive_buff), 0,(struct sockaddr *)&sender, &sender_size) < 0) {
-            perror("failed to receive broadcast message\n");
-            break;
-        }
+        // Here there is a problem/ It is need to be <0 but it's work only if >0
+        // if (recvfrom(sockfd->socket_fd, receive_buff, sizeof(receive_buff), 0,(struct sockaddr *)&sender, &sender_size) < 0) {
+        //     perror("failed to receive broadcast message\n");
+        //     break;
+        // }
         printf("%s\n", receive_buff);
       
     	printf("A new sender connection accepted\n");
