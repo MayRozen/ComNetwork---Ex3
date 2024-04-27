@@ -272,7 +272,7 @@ int rudp_recv(RUDP_Socket *sockfd, void *buffer, int buffer_size){
     int checksum = calculate_checksum(pack->data,pack->header.length);
     // check if the packet is corrupted, and send ack
     if (checksum != pack->header.checksum) {
-        printf("checksum != pack->header.checksum\n");
+        //printf("checksum != pack->header.checksum\n");
         free(pack);
         return -1;
     }
