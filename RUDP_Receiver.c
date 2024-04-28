@@ -29,6 +29,7 @@ int main(int argc, char *argv[]){
 	struct timeval start_time, end_time;
     size_t total_file_size = 0; // Total file size
     double total_time_taken = 0; // Total time taken 
+    int total = 0;
     if(sockfd->socket_fd == -1){
         printf("Could not create listening socket\n");
     }
@@ -76,7 +77,6 @@ int main(int argc, char *argv[]){
             rudp_close(sockfd);
             return -1;
     	}
-        
 		int bytes_read = BUFFER_SIZE;
         int total_bytes_sent = 0;
         gettimeofday(&start_time, NULL);
@@ -99,6 +99,22 @@ int main(int argc, char *argv[]){
             printf("the bytes_read is: %d\n",bytes_read);
             
         } while (bytes_read > 0);
+        int run = 1;
+
+        if(total_bytes_sent>=  (1<<21)){
+            gettimeofday(&end_time, NULL); 
+            double elapsed_time = (end_time.tv_sec - start_time.tv_sec) * 1000.0;
+            elapsed_time += (end_time.tv_usec - start_time.tv_usec) / 1000.0;
+            double total_bandwidth_fn = (total_bytes_sent / (1024 * 1024)) / (elapsed_time / 1000);
+            printf(" - File transfer completed for Run #%d.\n", run);
+            printf(" - Run #%d Data: Time=%.2fms; Speed=%.2fMB/s\n", run, elapsed_time, total_bandwidth_fn);
+            total_time_taken += elapsed_time;
+            run++;
+            printf("Waiting for Sender response...\n");
+            total += total_bytes_sent;
+            total_bytes_sent = 0;
+
+        }
         printf("the total bytes sent is: %d\n", total_bytes_sent);
         if(total_bytes_sent < 2 * 1024 * 1024){ // Checking if the file is at least 2MB
             printf("The file's size is smaller than expected\n");
@@ -107,7 +123,7 @@ int main(int argc, char *argv[]){
             return -1;
         }
 
-        gettimeofday(&end_time, NULL);
+        
 
         long seconds = end_time.tv_sec - start_time.tv_sec;
         long micros = end_time.tv_usec - start_time.tv_usec;
