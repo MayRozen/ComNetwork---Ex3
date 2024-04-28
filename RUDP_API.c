@@ -415,7 +415,7 @@ int rudp_Send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
 
 
         memset(pack, 0, sizeof(packet));
-        memcpy(pack->header.flag.DATA, current, MAX_SIZE);
+        memcpy(pack->data, current, MAX_SIZE);
 
         // if we are at the last packet, we will set the FIN flag to 1
         if (i == packets_num - 1 && last_packet_size == 0) {
@@ -443,14 +443,14 @@ int rudp_Send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
         current += MAX_SIZE;
     }
     int lastSize = 4200;
-    Header h;
-    h.seqNum = (int)packets_num;
-    memcpy(h.flag.DATA , current, lastSize);
+    pPacket p = malloc(sizeof(packet));
+    p->header.seqNum = (int)packets_num;
+    memcpy(p->data , current, lastSize);
     // set the fields of the packet
-    h.length = lastSize;
-    h.checksum = calculate_checksum(h.flag.DATA,h.length);
-    h.flag.FIN = 0; 
-    int bytes_sent = sendto(sockfd->socket_fd, &h, sizeof(Header), 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
+    p->header.length = lastSize;
+    p->header.checksum = calculate_checksum(p->data,p->header.length);
+    p->header.flag.FIN = 0; 
+    int bytes_sent = sendto(sockfd->socket_fd, p, sizeof(Header), 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
     if (bytes_sent == -1) {
         perror("sendto() failed");
         return -1;  // Handle the error appropriately
