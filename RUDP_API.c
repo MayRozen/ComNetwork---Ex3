@@ -9,7 +9,6 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <time.h>
-#include <fcntl.h>
 #include <sys/time.h>
 
 #include "RUDP_API.h"
@@ -391,73 +390,64 @@ int rudp_Send(RUDP_Socket *sockfd, void *buffer, unsigned int buffer_size){
         rudp_close(sockfd);
         return -1;
     }
-    
-    int packets_num = buffer_size / MAX_SIZE; // calculate the number of packets needed to send the data
-    int last_packet_size = buffer_size % MAX_SIZE; // calculate the size of the last packet
-    if (last_packet_size > 0) {
-        packets_num++;
+    // calculate the number of packets needed to send the data
+    int packets_num = buffer_size / MAX_SIZE;
+    // calculate the size of the last packet
+    int last_packet_size = buffer_size % MAX_SIZE;
+    pPacket pack = (pPacket)malloc(sizeof(packet));
+    if(pack == NULL){
+        printf("malloc failed\n");
+        free(pack);
+        return -1;
     }
-    last_packet_size = buffer_size;
-    char *current = (char *)buffer;
-
+    int sent_len = 0;
+    int sent_total = 0;
     // send the packets
-    for (int i = 1; i < packets_num; i++) {
-        pPacket pack = (pPacket)malloc(sizeof(packet));
-        if(pack == NULL){
-            printf("malloc failed\n");
-            free(pack);
-            return -1;
-        }
-
-    
+    for (int i = 0; i < packets_num; i++){
+        memset(pack, 0, sizeof(packet));
         pack->header.seqNum = i;     // set the sequence number
         pack->header.flag.DATA = 1;  // set the DATA flag
-
-
-        memset(pack, 0, sizeof(packet));
-        memcpy(pack->data, current, MAX_SIZE);
-
         // if we are at the last packet, we will set the FIN flag to 1
         if (i == packets_num - 1 && last_packet_size == 0) {
             pack->header.flag.FIN = 1;
         }
-        
-        memcpy(pack->data, buffer + i * MAX_SIZE, MAX_SIZE); // put the data in the packet
-        pack->header.length = MAX_SIZE; // set the length of the packet
+        // put the data in the packet
+        memcpy(pack->data, buffer + i * MAX_SIZE, MAX_SIZE);
+        // set the length of the packet
+        pack->header.length = MAX_SIZE;
         // calculate the checksum of the packet before the actual sending
         pack->header.checksum = calculate_checksum(pack->data,pack->header.length);
 
-        int flags = fcntl(sockfd->socket_fd, F_GETFL, 0);
-        if (flags & O_NONBLOCK) {
-            // If somehow the socket is still non-blocking, force it to blocking
-            flags &= ~O_NONBLOCK;
-            fcntl(sockfd->socket_fd, F_SETFL, flags);
-        }
-
-        int sent_len = sendto(sockfd->socket_fd, pack, sizeof(packet), 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
-        if (sent_len == -1) {
-            perror("sendto() failed\n");
-            return -1;  // Handle the error appropriately
-        }
-        last_packet_size = last_packet_size - MAX_SIZE;
-        current += MAX_SIZE;
+       // do {
+        // ssize_t chunk_size = remaining > MAX_UDP_PAYLOAD_SIZE ? MAX_UDP_PAYLOAD_SIZE : remaining;
+            sent_len = sendto(sockfd->socket_fd, pack, sizeof(packet), 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
+            // if (sent_len == -1) {
+            //     perror("sendto() failed\n");
+            //     return -1;  // Handle the error appropriately
+            // }
+       // }while (ACKtimeOut(sockfd->socket_fd, i, clock(), 1) <= 0);
+        sent_total += sent_len;
     }
-    int lastSize = 4200;
-    pPacket p = malloc(sizeof(packet));
-    p->header.seqNum = (int)packets_num;
-    memcpy(p->data , current, lastSize);
-    // set the fields of the packet
-    p->header.length = lastSize;
-    p->header.checksum = calculate_checksum(p->data,p->header.length);
-    p->header.flag.FIN = 0; 
-    int bytes_sent = sendto(sockfd->socket_fd, p, sizeof(Header), 0, (struct sockaddr *)&(sockfd->dest_addr), sizeof(sockfd->dest_addr));
-    if (bytes_sent == -1) {
-        perror("sendto() failed");
-        return -1;  // Handle the error appropriately
+    if (last_packet_size > 0) {
+        memset(pack, 0, sizeof(packet));
+        // set the fields of the packet
+        pack->header.seqNum = packets_num;
+        pack->header.flag.DATA = 1;
+        pack->header.flag.FIN = 1;
+        memcpy(pack->data, buffer + packets_num * MAX_SIZE, last_packet_size);
+        pack->header.length = last_packet_size;
+        pack->header.checksum = calculate_checksum(pack->data,pack->header.length);
+        int sendLastPacket = sendto(sockfd->socket_fd, pack, sizeof(packet), 0, NULL, 0);
+        if (sendLastPacket == -1) {
+            perror("sendto() failed");
+            free(pack);
+            return -1;
+        }
+        sent_total += sendLastPacket;
+        free(pack);
     }
-
-    printf("Send() success!\n");
-    return 0; 
+    printf("total byte sent is %d\n", sent_total);
+    return sent_total;
 }
 
 int rudp_disconnect(RUDP_Socket *sockfd){
